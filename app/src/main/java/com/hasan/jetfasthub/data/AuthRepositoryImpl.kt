@@ -1,48 +1,26 @@
 package com.hasan.jetfasthub.data
 
 import android.content.Context
-import android.util.Log
-import androidx.lifecycle.LiveData
-import androidx.lifecycle.MutableLiveData
-import com.hasan.jetfasthub.networking.GitHubHelper
 import com.hasan.jetfasthub.networking.RetrofitInstance
-import com.hasan.jetfasthub.networking.model.AccessTokenModel
-import org.koin.androidx.compose.get
-import retrofit2.Call
-import retrofit2.Callback
+import com.hasan.jetfasthub.data.model.AccessTokenModel
+import com.hasan.jetfasthub.utility.Constants
 import retrofit2.Response
 
 
-interface  AuthRepository{
-    fun getAccessToken(code: String): LiveData<AccessTokenModel>
+interface AuthRepository {
+    suspend fun getAccessToken(code: String): Response<AccessTokenModel>
 }
-class AuthRepositoryImpl(private val context: Context): AuthRepository {
 
-    private var _accessTokenModel = MutableLiveData<AccessTokenModel>()
+class AuthRepositoryImpl(private val context: Context) : AuthRepository {
 
-    override fun getAccessToken(code: String): LiveData<AccessTokenModel> {
-        RetrofitInstance(context).api.getAccessToken(
+    override suspend fun getAccessToken(code: String): Response<AccessTokenModel> {
+        return RetrofitInstance(context).authService.getAccessToken(
             code = code,
-            GitHubHelper.CLIENT_ID,
-            GitHubHelper.CLIENT_SECRET,
-            GitHubHelper.STATE,
-            GitHubHelper.REDIRECT_URL
-        ).enqueue(object : Callback<AccessTokenModel> {
-            override fun onResponse(
-                call: Call<AccessTokenModel>,
-                response: Response<AccessTokenModel>
-            ) {
-                _accessTokenModel.value = response.body()
-            }
-
-            override fun onFailure(call: Call<AccessTokenModel>, t: Throwable) {
-                //to do
-                Log.d("ahi3646", "onFailure: ${t.stackTrace}")
-            }
-
-        })
-
-        return _accessTokenModel
+            Constants.CLIENT_ID,
+            Constants.CLIENT_SECRET,
+//                GitHubHelper.STATE,
+//                GitHubHelper.REDIRECT_URL
+        )
     }
 
 }

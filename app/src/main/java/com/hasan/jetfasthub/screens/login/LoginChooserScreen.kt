@@ -40,8 +40,8 @@ import androidx.fragment.app.Fragment
 import androidx.navigation.NavController
 import androidx.navigation.findNavController
 import com.hasan.jetfasthub.R
-import com.hasan.jetfasthub.networking.GitHubHelper
 import com.hasan.jetfasthub.ui.theme.JetFastHubTheme
+import com.hasan.jetfasthub.utility.Constants
 
 class LoginChooserFragment : Fragment() {
 
@@ -205,9 +205,9 @@ private fun getAuthorizationUrl(): Uri {
         .appendPath("login")
         .appendPath("oauth")
         .appendPath("authorize")
-        .appendQueryParameter("client_id", GitHubHelper.CLIENT_ID)
-        .appendQueryParameter("redirect_uri", GitHubHelper.REDIRECT_URL)
-        .appendQueryParameter("scope", GitHubHelper.SCOPE)
-        .appendQueryParameter("state", GitHubHelper.STATE)
+        .appendQueryParameter("client_id", Constants.CLIENT_ID)
+        .appendQueryParameter("redirect_uri", Constants.REDIRECT_URL)
+        .appendQueryParameter("scope", Constants.SCOPE)
+        .appendQueryParameter("state", Constants.STATE)
         .build()
 }

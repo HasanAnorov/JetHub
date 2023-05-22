@@ -3,6 +3,7 @@ package com.hasan.jetfasthub.app
 import android.app.Application
 import com.hasan.jetfasthub.di.appModule
 import com.hasan.jetfasthub.di.basicAuthViewModelModule
+import com.hasan.jetfasthub.di.eventsModule
 import com.hasan.jetfasthub.di.homeViewModelModule
 import org.koin.android.ext.koin.androidContext
 import org.koin.android.ext.koin.androidLogger
@@ -18,6 +19,7 @@ class JetHubApp: Application() {
             androidContext(this@JetHubApp)
             modules(
                 appModule,
+                eventsModule,
                 basicAuthViewModelModule,
                 homeViewModelModule
             )

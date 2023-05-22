@@ -51,6 +51,9 @@ android {
 
 dependencies {
 
+    //Landscappist
+    implementation "com.github.skydoves:landscapist-glide:2.2.0"
+
     implementation 'androidx.constraintlayout:constraintlayout:2.1.4'
     implementation 'androidx.navigation:navigation-fragment:2.5.3'
 
