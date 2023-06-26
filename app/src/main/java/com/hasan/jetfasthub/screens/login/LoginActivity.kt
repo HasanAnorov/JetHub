@@ -7,16 +7,17 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.lifecycleScope
 import com.hasan.jetfasthub.R
 import com.hasan.jetfasthub.data.PreferenceHelper
-import com.hasan.jetfasthub.data.model.AccessTokenModel
-import com.hasan.jetfasthub.data.model.Resource
+import com.hasan.jetfasthub.screens.login.model.AccessTokenModel
 import com.hasan.jetfasthub.screens.main.AppActivity
 import com.hasan.jetfasthub.utility.Constants
+import com.hasan.jetfasthub.utility.Resource
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import org.koin.androidx.viewmodel.ext.android.viewModel
 import retrofit2.Response
 
 class LoginActivity : AppCompatActivity(R.layout.activity_login) {
+
 
     private val viewModel: LoginViewModel by viewModel()
 
@@ -66,10 +67,10 @@ class LoginActivity : AppCompatActivity(R.layout.activity_login) {
                 status.data.let { it ->
                     val token = it?.body()?.access_token.toString()
                     PreferenceHelper.saveToken(this, token)
-
                     navigateToMainScreen()
                 }
             }
+
             is Resource.DataError -> {
                 //binding.progressBar.visibility = View.GONE
                 Toast.makeText(
@@ -82,7 +83,6 @@ class LoginActivity : AppCompatActivity(R.layout.activity_login) {
     }
 
     private fun navigateToMainScreen() {
-
         Intent(this, AppActivity::class.java).also { intent ->
             intent.flags = Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_NEW_TASK
             startActivity(intent)

@@ -6,7 +6,7 @@ import android.util.Log
 import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
 import com.hasan.jetfasthub.data.PreferenceHelper
-import com.hasan.jetfasthub.data.model.AccessTokenModel
+import com.hasan.jetfasthub.screens.login.model.AccessTokenModel
 import com.hasan.jetfasthub.utility.Constants
 import okhttp3.Credentials
 import okhttp3.Interceptor

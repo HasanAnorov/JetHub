@@ -7,6 +7,7 @@ import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import androidx.appcompat.view.menu.MenuPresenter
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -46,11 +47,12 @@ import androidx.fragment.app.Fragment
 import com.hasan.jetfasthub.R
 import com.hasan.jetfasthub.ui.theme.JetFastHubTheme
 import com.hasan.jetfasthub.utility.Constants
+import org.koin.androidx.compose.inject
 import org.koin.androidx.viewmodel.ext.android.viewModel
 
 class BasicAuthFragment : Fragment() {
 
-    private val viewModel: BasicAuthViewModel by viewModel()
+    private val viewModel: BasicAuthViewModel by  viewModel()
 
     override fun onCreateView(
         inflater: LayoutInflater,
@@ -197,7 +199,6 @@ private fun MainContent(
                     textAlign = TextAlign.Center
                 )
             }
-
         }
     }
 }
@@ -211,7 +212,7 @@ private fun getAuthorizationUrl(): Uri {
         .appendPath("authorize")
         .appendQueryParameter("client_id", Constants.CLIENT_ID)
         .appendQueryParameter("redirect_uri", Constants.REDIRECT_URL)
-        .appendQueryParameter("scope", Constants.SCOPE)
+        //.appendQueryParameter("scope", Constants.SCOPE)
         .appendQueryParameter("state", Constants.STATE)
         .build()
 }

@@ -1,25 +1,84 @@
 package com.hasan.jetfasthub.di
 
+import android.content.Context
+import com.chuckerteam.chucker.api.ChuckerCollector
+import com.chuckerteam.chucker.api.ChuckerInterceptor
+import com.google.gson.GsonBuilder
 import com.hasan.jetfasthub.data.AuthRepository
 import com.hasan.jetfasthub.data.AuthRepositoryImpl
 import com.hasan.jetfasthub.screens.login.LoginViewModel
 import com.hasan.jetfasthub.screens.login.basic_auth.BasicAuthViewModel
-import com.hasan.jetfasthub.screens.main.home.HomeRepository
-import com.hasan.jetfasthub.screens.main.home.HomeRepositoryImpl
+import com.hasan.jetfasthub.data.HomeRepository
+import com.hasan.jetfasthub.data.HomeRepositoryImpl
+import com.hasan.jetfasthub.data.ProfileRepository
+import com.hasan.jetfasthub.data.ProfileRepositoryImpl
+import com.hasan.jetfasthub.networking.AuthInterceptor
+import com.hasan.jetfasthub.networking.AuthService
 import com.hasan.jetfasthub.screens.main.home.HomeViewModel
-import com.hasan.jetfasthub.screens.main.home.events.EventsViewModel
+import com.hasan.jetfasthub.screens.main.profile.ProfileViewModel
+import com.hasan.jetfasthub.utility.Constants
+import okhttp3.OkHttpClient
+import okhttp3.logging.HttpLoggingInterceptor
 import org.koin.androidx.viewmodel.dsl.viewModel
 import org.koin.androidx.viewmodel.dsl.viewModelOf
 import org.koin.dsl.module
+import retrofit2.Retrofit
+import retrofit2.converter.gson.GsonConverterFactory
 
 val appModule = module {
     single<AuthRepository> { AuthRepositoryImpl(get()) }
     viewModel { LoginViewModel(get()) }
 }
 
+val networkModule = module {
+    factory { AuthInterceptor(get()) }
+    factory {
+        provideOkHttpClient(
+            ChuckerInterceptor.Builder(get())
+                .collector(ChuckerCollector(get()))
+                .maxContentLength(250000L)
+                .redactHeaders(emptySet())
+                .alwaysReadResponseBody(false)
+                .build(),
+            HttpLoggingInterceptor().setLevel(HttpLoggingInterceptor.Level.BODY)
+        )
+    }
+    factory { provideAuthService(get()) }
+    single { provideRetrofit(get()) }
+}
+
+fun provideAuthService(retrofit: Retrofit) : AuthService{
+    return retrofit.create(AuthService::class.java)
+}
+
+fun provideRetrofit(okHttpClient: OkHttpClient): Retrofit {
+    val gson = GsonBuilder()
+        .setLenient()
+        .create()
+
+    return Retrofit.Builder()
+        .baseUrl(Constants.BASE_URL)
+        .addConverterFactory(GsonConverterFactory.create(gson))
+        .client(okHttpClient)
+        .build()
+}
+
+fun provideOkHttpClient(
+    chuckerInterceptor: ChuckerInterceptor,
+    httpLoggingInterceptor: HttpLoggingInterceptor
+): OkHttpClient {
+    return OkHttpClient.Builder().addInterceptor(chuckerInterceptor)
+        .addInterceptor(httpLoggingInterceptor).build()
+}
+
+val profileModule = module {
+    single<ProfileRepository> { ProfileRepositoryImpl(get()) }
+    viewModel { ProfileViewModel(get()) }
+}
+
 val eventsModule = module {
     single<HomeRepository> { HomeRepositoryImpl(get()) }
-    viewModel{ EventsViewModel(get()) }
+    viewModel { HomeViewModel(get()) }
 }
 
 val basicAuthViewModelModule = module {

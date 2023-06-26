@@ -1,17 +1,13 @@
 package com.hasan.jetfasthub.screens.login
 
-import android.util.Log
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.hasan.jetfasthub.data.AuthRepository
-import com.hasan.jetfasthub.data.AuthRepositoryImpl
-import com.hasan.jetfasthub.data.model.AccessTokenModel
-import com.hasan.jetfasthub.data.model.Resource
-import kotlinx.coroutines.Dispatchers
+import com.hasan.jetfasthub.screens.login.model.AccessTokenModel
+import com.hasan.jetfasthub.utility.Resource
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
 import retrofit2.Response
 
 class LoginViewModel(private val repository: AuthRepository) : ViewModel() {

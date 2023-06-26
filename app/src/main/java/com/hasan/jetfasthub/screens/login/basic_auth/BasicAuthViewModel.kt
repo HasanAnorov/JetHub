@@ -1,7 +1,6 @@
 package com.hasan.jetfasthub.screens.login.basic_auth
 
 import androidx.lifecycle.ViewModel
-import com.hasan.jetfasthub.screens.login.basic_auth.BasicAuthUiState
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -29,7 +28,5 @@ class BasicAuthViewModel: ViewModel() {
             it.copy(passwordVisibility = newVisibility)
         }
     }
-
-
 
 }

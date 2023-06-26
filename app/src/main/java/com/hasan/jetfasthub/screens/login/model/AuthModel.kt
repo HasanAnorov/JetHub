@@ -1,4 +1,4 @@
-package com.hasan.jetfasthub.data.model
+package com.hasan.jetfasthub.screens.login.model
 
 open class AuthModel(
      private var clientId: String? = null,
