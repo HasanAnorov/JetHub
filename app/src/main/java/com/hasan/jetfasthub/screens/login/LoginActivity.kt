@@ -70,8 +70,7 @@ class LoginActivity : AppCompatActivity(R.layout.activity_login) {
                     navigateToMainScreen()
                 }
             }
-
-            is Resource.DataError -> {
+            is Resource.Failure -> {
                 //binding.progressBar.visibility = View.GONE
                 Toast.makeText(
                     applicationContext,

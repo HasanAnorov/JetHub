@@ -22,7 +22,7 @@ class LoginViewModel(private val repository: AuthRepository) : ViewModel() {
                 if (it.isSuccessful) {
                     _accessTokenModel.value = Resource.Success(it)
                 } else {
-                    _accessTokenModel.value = Resource.DataError(it.code())
+                    _accessTokenModel.value = Resource.Failure(it.errorBody().toString())
                 }
             }
         }

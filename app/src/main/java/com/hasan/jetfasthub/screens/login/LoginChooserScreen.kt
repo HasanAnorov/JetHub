@@ -71,7 +71,7 @@ class LoginChooserFragment : Fragment() {
 }
 
 @Composable
-fun MainContent(
+private fun MainContent(
     modifier: Modifier = Modifier,
     navController: NavController,
     context: Context

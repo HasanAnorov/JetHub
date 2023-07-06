@@ -7,4 +7,73 @@
     <string name="pull_requests">Pull Requests</string>
     <string name="issues">Issues</string>
     <string name="feeds">Feeds</string>
+
+    // Events
+    <string name="released">Released</string>
+    <string name="pull_request" translatable="false">Pull Request</string>
+    <string name="commit" translatable="false">Commit</string>
+    <string name="created_gist" translatable="false">Gist</string>
+    <string name="gollum" translatable="false">Wiki</string>
+    <string name="created_issue" translatable="false">Issue</string>
+    <string name="public_event" translatable="false">Open-sourced</string>
+    <string name="organization_event" translatable="false">Organization</string>
+    <string name="card_event" translatable="false">Card</string>
+    <string name="project_event" translatable="false">Project</string>
+    <string name="undefined" translatable="false"> </string>
+    <string name="pr_review_event" translatable="false">Pull Request</string>
+    <string name="repo_event" translatable="false">Repository</string>
+    <string name="forked" translatable="false">Forked</string>
+    <string name="starred" translatable="false">Starred</string>
+    <string name="created_repo">Created</string>
+    <string name="committed">Committed</string>
+    <string name="downloaded">Downloaded</string>
+    <string name="followed">Followed</string>
+    <string name="commented_on_issue">Comment on Issue</string>
+    <string name="member">Member</string>
+    <string name="pr_comment_review">Pull Request comment</string>
+    <string name="pushed">Pushed to</string>
+    <string name="team_event">Team</string>
+    <string name="deleted">Deleted</string>
+    <string name="unknown">Unknown</string>
+    <string name="commented_on_commit">Commented on commit</string>
+    <string name="switch_branch">Switch branch</string>
+    <string name="assignees">Assignees</string>
+    <string name="edit">Edit</string>
+    <string name="edited">\u2022 edited</string>
+    <string name="update_issue">Update Issue</string>
+    <string name="update_pull_request">Update Pull Request</string>
+
+    <string name="path_follow_person" translatable="false">M15,12C17.21,12 19,10.21 19,8C19,5.79 17.21,4 15,4C12.79,4 11,5.79 11,8C11,10.21 12.79,12
+        15,12L15,12ZM15,14C12.33,14 7,15.34 7,18L7,20L23,20L23,18C23,15.34 17.67,14 15,14L15,14Z</string>
+    <string name="path_follow_plus" translatable="false">M6,7 L4,7 L4,10 L1,10 L1,12 L4,12 L4,15 L6,15 L6,12 L9,12 L9,10 L6,10 L6,7 Z</string>
+    <string name="path_follow_minus" translatable="false">M6,10 L4,10 L4,10 L1,10 L1,12 L4,12 L4,12 L6,12 L6,12 L9,12 L9,10 L6,10 L6,10 Z</string>
+
+
+    <string name="fasthub_faq_description">
+        <![CDATA[
+        <h5>• Why can\'t I see either my <i>Private</i> or my <i>Public</i> <b>Organizations</b>?</h5>
+        <p>Open up https://github.com/settings/applications and look for FastHub, open it up, scroll down to "Organization access" and click on the "Grant" button.
+        Alternatively you can sign in using <b>Access Token</b> which will ease the process.</p>
+
+        <h5>• I have tried signing in with an Access Token and a One-Time Password (OTP) without any luck. What\'s wrong?</h5>
+        <p>You can\'t sign in using Access Token and OTP all together. Due to the limited lifetime of such passwords you\'ll have to repeat a sign in procedure every few seconds.</p>
+
+        <h5>• Why aren\'t my Private and Enterprise Repositories\' Wikis showing up?</h5>
+        <p>As FastHub scraps GitHub\'s Wiki pages, the application is unable to obtain any session token which is required by Private Repositories.</p>
+
+        <h5>• I have signed into my Enterprise account. Why can\'t I interact with anything other than my Enterprise GitHub?</h5>
+        <p>Well, logically, you can\'t access anything else other than your Enterprise. FastHub tries to require as many permissions as possible, but can\'t do anything more about it
+        in most cases, since your credentials are not on GitHub\'s server. But in <b>some</b> cases your GitHub account OAuth token will do the trick.</p>
+
+        <h5>• Why am I having problems editing Issues/Pull Requests (PRs)?</h5>
+        <p>If you are unable to edit Issues/PRs in a Public Organization\'s repository, please contact your Organization to grant access to FastHub. Alternatively you can sign in with an Access Token.</p>
+
+        <h5>• I\'m having problems! / I want to suggest you some things!</h5>
+        <p>Head to https://github.com/k0shk0sh/FastHub/issues/new and create a new issue for any bugs and feature requests. I really do encourage you to
+        search for similar issues before opening a new one. Any duplicated ticket will be labeled as duplicated and closed immediately.</p>
+
+        <h5>• How can I get a PROMO CODE?</h5>
+        <p>This program no longer exists.</p>
+    ]]></string>
+
 </resources>

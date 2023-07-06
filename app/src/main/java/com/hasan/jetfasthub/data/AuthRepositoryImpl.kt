@@ -6,7 +6,6 @@ import com.hasan.jetfasthub.screens.login.model.AccessTokenModel
 import com.hasan.jetfasthub.utility.Constants
 import retrofit2.Response
 
-
 interface AuthRepository {
     suspend fun getAccessToken(code: String): Response<AccessTokenModel>
 }
@@ -14,14 +13,10 @@ interface AuthRepository {
 class AuthRepositoryImpl(private val context: Context) : AuthRepository {
 
     override suspend fun getAccessToken(code: String): Response<AccessTokenModel> {
-        return RetrofitInstance(context).authService.getAccessToken(
-            Constants.CLIENT_ID,
-            Constants.CLIENT_SECRET,
+        return RetrofitInstance(context).gitHubService.getAccessToken(
+            clientId = Constants.CLIENT_ID,
+            clientSecret = Constants.CLIENT_SECRET,
             code = code,
-            Constants.REDIRECT_URL
-//                GitHubHelper.STATE,
-//                GitHubHelper.REDIRECT_URL
         )
     }
-
 }

@@ -8,6 +8,7 @@
         android:id="@+id/homeFragment"
         android:name="com.hasan.jetfasthub.screens.main.home.HomeFragment"
         android:label="JetHub" >
+
         <action
             android:id="@+id/action_homeFragment_to_profileFragment"
             app:launchSingleTop="true"
@@ -17,12 +18,74 @@
             app:popExitAnim="@anim/fade_out"
             app:popUpTo="@id/homeFragment"
             app:destination="@id/profileFragment" />
+
+        <action
+            android:id="@+id/action_homeFragment_to_notificationsFragment"
+            app:launchSingleTop="true"
+            app:enterAnim="@anim/fade_in"
+            app:exitAnim="@anim/fade_out"
+            app:popEnterAnim="@anim/fade_in"
+            app:popExitAnim="@anim/fade_out"
+            app:popUpTo="@id/homeFragment"
+            app:destination="@id/notificationsFragment" />
+
+        <action
+            android:id="@+id/action_homeFragment_to_searchFragment"
+            app:launchSingleTop="true"
+            app:enterAnim="@anim/fade_in"
+            app:exitAnim="@anim/fade_out"
+            app:popEnterAnim="@anim/fade_in"
+            app:popExitAnim="@anim/fade_out"
+            app:popUpTo="@id/homeFragment"
+            app:destination="@id/searchFragment" />
+
+        <action
+            android:id="@+id/action_homeFragment_to_aboutFragment"
+            app:launchSingleTop="true"
+            app:enterAnim="@anim/fade_in"
+            app:exitAnim="@anim/fade_out"
+            app:popEnterAnim="@anim/fade_in"
+            app:popExitAnim="@anim/fade_out"
+            app:popUpTo="@id/homeFragment"
+            app:destination="@id/aboutFragment" />
+
+        <action
+            android:id="@+id/action_homeFragment_to_settingsFragment"
+            app:launchSingleTop="true"
+            app:enterAnim="@anim/fade_in"
+            app:exitAnim="@anim/fade_out"
+            app:popEnterAnim="@anim/fade_in"
+            app:popExitAnim="@anim/fade_out"
+            app:popUpTo="@id/homeFragment"
+            app:destination="@id/settingsFragment" />
+
+        <action
+            android:id="@+id/action_homeFragment_to_faqFragment"
+            app:launchSingleTop="true"
+            app:enterAnim="@anim/fade_in"
+            app:exitAnim="@anim/fade_out"
+            app:popEnterAnim="@anim/fade_in"
+            app:popExitAnim="@anim/fade_out"
+            app:popUpTo="@id/homeFragment"
+            app:destination="@id/faqFragment" />
+
+        <action
+            android:id="@+id/action_homeFragment_to_gistsFragment"
+            app:launchSingleTop="true"
+            app:enterAnim="@anim/fade_in"
+            app:exitAnim="@anim/fade_out"
+            app:popEnterAnim="@anim/fade_in"
+            app:popExitAnim="@anim/fade_out"
+            app:popUpTo="@id/homeFragment"
+            app:destination="@id/gistsFragment" />
+
     </fragment>
 
     <fragment
         android:id="@+id/profileFragment"
         android:name="com.hasan.jetfasthub.screens.main.profile.ProfileFragment"
         android:label="ProfileFragment" >
+
         <action
             android:id="@+id/action_profileFragment_to_homeFragment"
             app:destination="@id/homeFragment"
@@ -32,6 +95,107 @@
             app:popEnterAnim="@anim/fade_in"
             app:popExitAnim="@anim/fade_out"
             app:popUpToInclusive="true" />
+
+        <action
+            android:id="@+id/action_profileFragment_to_organisationsFragment"
+            app:launchSingleTop="true"
+            app:enterAnim="@anim/fade_in"
+            app:exitAnim="@anim/fade_out"
+            app:popEnterAnim="@anim/fade_in"
+            app:popExitAnim="@anim/fade_out"
+            app:popUpTo="@id/homeFragment"
+            app:destination="@id/organisationsFragment" />
+
+    </fragment>
+
+    <fragment
+        android:id="@+id/notificationsFragment"
+        android:name="com.hasan.jetfasthub.screens.main.notifications.NotificationsFragment"
+        android:label="NotificationsFragment" >
+
+        <action
+            android:id="@+id/action_notificationsFragment_to_homeFragment"
+            app:destination="@id/homeFragment"
+            app:popUpTo="@id/homeFragment"
+            app:enterAnim="@anim/fade_in"
+            app:exitAnim="@anim/fade_out"
+            app:popEnterAnim="@anim/fade_in"
+            app:popExitAnim="@anim/fade_out"
+            app:popUpToInclusive="true"/>
+
+    </fragment>
+
+    <fragment
+        android:id="@+id/searchFragment"
+        android:name="com.hasan.jetfasthub.screens.main.search.SearchFragment"
+        android:label="SearchFragment" >
+
+        <action
+            android:id="@+id/action_searchFragment_to_homeFragment"
+            app:destination="@id/homeFragment"
+            app:popUpTo="@id/homeFragment"
+            app:enterAnim="@anim/fade_in"
+            app:exitAnim="@anim/fade_out"
+            app:popEnterAnim="@anim/fade_in"
+            app:popExitAnim="@anim/fade_out"
+            app:popUpToInclusive="true"/>
+
+    </fragment>
+
+    <fragment
+        android:id="@+id/aboutFragment"
+        android:name="com.hasan.jetfasthub.screens.main.about.AboutFragment"
+        android:label="AboutFragment" >
+
+        <action
+            android:id="@+id/action_aboutFragment_to_homeFragment"
+            app:destination="@id/homeFragment"
+            app:popUpTo="@id/homeFragment"
+            app:enterAnim="@anim/fade_in"
+            app:exitAnim="@anim/fade_out"
+            app:popEnterAnim="@anim/fade_in"
+            app:popExitAnim="@anim/fade_out"
+            app:popUpToInclusive="true"/>
+
+    </fragment>
+
+    <fragment
+        android:id="@+id/settingsFragment"
+        android:name="com.hasan.jetfasthub.screens.main.settings.SettingsFragment"
+        android:label="SettingsFragment" >
+        <action
+            android:id="@+id/action_settingsFragment_to_homeFragment"
+            app:destination="@id/homeFragment"
+            app:popUpTo="@id/homeFragment"
+            app:enterAnim="@anim/fade_in"
+            app:exitAnim="@anim/fade_out"
+            app:popEnterAnim="@anim/fade_in"
+            app:popExitAnim="@anim/fade_out"
+            app:popUpToInclusive="true"/>
+    </fragment>
+    <fragment
+        android:id="@+id/faqFragment"
+        android:name="com.hasan.jetfasthub.screens.main.faq.FaqFragment"
+        android:label="FaqFragment" />
+
+    <fragment
+        android:id="@+id/gistsFragment"
+        android:name="com.hasan.jetfasthub.screens.main.gists.GistsFragment"
+        android:label="GistsFragment" />
+
+    <fragment
+        android:id="@+id/organisationsFragment"
+        android:name="com.hasan.jetfasthub.screens.main.organisations.OrganisationsFragment"
+        android:label="OrganisationsFragment" >
+        <action
+            android:id="@+id/action_organisationsFragment_to_profileFragment"
+            app:destination="@id/profileFragment"
+            app:popUpTo="@id/homeFragment"
+            app:enterAnim="@anim/fade_in"
+            app:exitAnim="@anim/fade_out"
+            app:popEnterAnim="@anim/fade_in"
+            app:popExitAnim="@anim/fade_out"
+            app:popUpToInclusive="true"/>
     </fragment>
 
 </navigation>
