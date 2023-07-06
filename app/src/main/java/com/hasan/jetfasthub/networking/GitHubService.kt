@@ -9,6 +9,7 @@ import com.hasan.jetfasthub.screens.main.home.user_model.GitHubUser
 import com.hasan.jetfasthub.screens.main.notifications.model.Notification
 import com.hasan.jetfasthub.screens.main.organisations.model.OrganisationMemberModel
 import com.hasan.jetfasthub.screens.main.organisations.org_repo_model.OrganisationsRepositoryModel
+import com.hasan.jetfasthub.screens.main.organisations.organisation_model.OrganisationModel
 import com.hasan.jetfasthub.screens.main.profile.model.event_model.UserEvents
 import com.hasan.jetfasthub.screens.main.profile.model.followers_model.FollowersModel
 import com.hasan.jetfasthub.screens.main.profile.model.following_model.FollowingModel
@@ -139,7 +140,7 @@ interface GitHubService {
         @Header("Authorization") token: String,
         @Query("per_page") perPage: Int,
         @Query("page") page: Int,
-    ): Response<PublicGistsModel    >
+    ): Response<PublicGistsModel>
 
     @Headers("Accept: application/vnd.github+json")
     @GET("users/{username}/received_events")
@@ -167,7 +168,7 @@ interface GitHubService {
     suspend fun getFollowStatus(
         @Header("Authorization") authToken: String,
         @Path("username") username: String,
-    ):Response<Boolean>
+    ): Response<Boolean>
 
     @Headers("Accept: application/vnd.github+json")
     @GET("orgs/{org}/members")
@@ -175,7 +176,7 @@ interface GitHubService {
         @Header("Authorization") authToken: String,
         @Path("org") organisation: String,
         @Query("page") page: Int
-    ):Response<OrganisationMemberModel>
+    ): Response<OrganisationMemberModel>
 
     @Headers("Accept: application/vnd.github+json")
     @GET("orgs/{org}/repos")
@@ -185,6 +186,13 @@ interface GitHubService {
         @Query("type") type: String,
         @Query("page") page: Int
     ): Response<OrganisationsRepositoryModel>
+
+    @Headers("Accept: application/vnd.github+json")
+    @GET("orgs/{org}")
+    suspend fun getOrganisation(
+        @Header("Authorization") authToken: String,
+        @Path("org") org: String,
+    ): Response<OrganisationModel>
 
     @Headers("Accept: application/vnd.github+json")
     @GET("notifications")
@@ -214,7 +222,7 @@ interface GitHubService {
         @Header("Authorization") authToken: String,
         @Query(value = "q", encoded = true) query: String,
         @Query("page") page: Long
-    ):Response<RepositoryModel>
+    ): Response<RepositoryModel>
 
     @Headers("Accept: application/vnd.github+json")
     @GET("search/users")
@@ -222,7 +230,7 @@ interface GitHubService {
         @Header("Authorization") authToken: String,
         @Query(value = "q", encoded = true) query: String,
         @Query("page") page: Long
-    ):Response<UserModel>
+    ): Response<UserModel>
 
     @Headers("Accept: application/vnd.github+json")
     @GET("search/issues")
@@ -230,7 +238,7 @@ interface GitHubService {
         @Header("Authorization") authToken: String,
         @Query(value = "q", encoded = true) query: String,
         @Query("page") page: Long
-    ):Response<IssuesModel>
+    ): Response<IssuesModel>
 
     @Headers("Accept: application/vnd.github+json")
     @GET("search/code")
@@ -238,7 +246,7 @@ interface GitHubService {
         @Header("Authorization") authToken: String,
         @Query(value = "q", encoded = true) query: String,
         @Query("page") page: Long
-    ):Response<CodeModel>
+    ): Response<CodeModel>
 
 
 }

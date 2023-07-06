@@ -4,8 +4,10 @@ import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.widget.Toast
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.scrollable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -19,7 +21,9 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.Card
 import androidx.compose.material.Scaffold
 import androidx.compose.material.Surface
@@ -51,8 +55,10 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.text.withStyle
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.fragment.app.Fragment
 import androidx.navigation.fragment.findNavController
@@ -62,6 +68,7 @@ import com.hasan.jetfasthub.screens.main.organisations.model.OrganisationMemberM
 import com.hasan.jetfasthub.screens.main.organisations.model.OrganisationMemberModelItem
 import com.hasan.jetfasthub.screens.main.organisations.org_repo_model.OrganisationsRepositoryModel
 import com.hasan.jetfasthub.screens.main.organisations.org_repo_model.OrganisationsRepositoryModelItem
+import com.hasan.jetfasthub.screens.main.organisations.organisation_model.OrganisationModel
 import com.hasan.jetfasthub.ui.theme.JetFastHubTheme
 import com.hasan.jetfasthub.utility.FileSizeCalculator
 import com.hasan.jetfasthub.utility.ParseDateFormat
@@ -88,6 +95,7 @@ class OrganisationsFragment : Fragment() {
             type = "all",
             page = 1
         )
+        organisationsViewModel.getOrg(token, organisation)
 
         return ComposeView(requireContext()).apply {
             setContent {
@@ -100,7 +108,11 @@ class OrganisationsFragment : Fragment() {
                                 val bundle = Bundle()
                                 bundle.putString("organisation_fragment", data)
                                 findNavController().navigate(dest, bundle)
-                            } else {
+                            }
+                            else if(dest == -1){
+                                findNavController().popBackStack()
+                            }
+                            else {
                                 findNavController().navigate(dest)
                             }
                         })
@@ -165,7 +177,7 @@ private fun TabScreen(
 
         when (tabIndex) {
             0 -> {
-                Overview()
+                Overview(state.Organisation, onRecyclerItemClick)
             }
 
             1 -> {
@@ -182,9 +194,235 @@ private fun TabScreen(
 }
 
 @Composable
-private fun Overview() {
+private fun Overview(
+    org: Resource<OrganisationModel>,
+    onRecyclerItemClick: (Int, String?) -> Unit
+) {
+
+    when (org) {
+        is Resource.Loading -> {
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(Color.White),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.Center
+            ) {
+                androidx.compose.material3.Text(text = "Loading ...")
+            }
+        }
+
+        is Resource.Success -> {
+            Surface(
+                modifier = Modifier
+                    .fillMaxWidth(),
+                elevation = 9.dp
+            ) {
+                Column(
+                    modifier = Modifier
+                        .verticalScroll(rememberScrollState())
+                ) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(6.dp)
+                    ) {
+                        GlideImage(
+                            failure = { painterResource(id = R.drawable.baseline_account_circle_24) },
+                            imageModel = {
+                                org.data!!.avatar_url
+                            }, // loading a network image using an URL.
+                            modifier = Modifier
+                                .size(48.dp, 48.dp)
+                                .size(48.dp, 48.dp)
+                                .clip(CircleShape),
+                            imageOptions = ImageOptions(
+                                contentScale = ContentScale.Crop,
+                                alignment = Alignment.CenterStart,
+                                contentDescription = "Actor Avatar"
+                            )
+                        )
+
+                        Spacer(modifier = Modifier.width(16.dp))
+
+                        Column(
+                            modifier = Modifier.align(Alignment.CenterVertically),
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            verticalArrangement = Arrangement.Center
+                        ) {
+                            Text(
+                                text = org.data!!.login,
+                                modifier = Modifier
+                                    .padding(16.dp)
+                                    .fillMaxWidth(),
+                                color = Color.Black,
+                                style = androidx.compose.material.MaterialTheme.typography.subtitle1,
+                                maxLines = 2,
+                                overflow = TextOverflow.Ellipsis
+                            )
+
+                            Spacer(modifier = Modifier.height(8.dp))
+
+                        }
+                    }
+
+                    if (org.data!!.description != null) {
+                        Text(
+                            text = org.data.description!!,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(16.dp),
+                            textAlign = TextAlign.Start,
+                            maxLines = 2
+                        )
+                    }
+
+                    if (org.data.location != null) {
+                        Row(
+                            modifier = Modifier
+                                .padding(16.dp)
+                                .fillMaxWidth(),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.Start
+                        ) {
+                            Icon(
+                                painter = painterResource(id = R.drawable.ic_location),
+                                contentDescription = "Location"
+                            )
+                            Text(
+                                text = org.data.location,
+                                modifier = Modifier.padding(start = 16.dp)
+                            )
+                        }
+
+                        Divider(
+                            color = Color.Black,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(start = 24.dp, end = 24.dp, top = 2.dp, bottom = 2.dp)
+                        )
+                    }
+
+                    if (org.data.email != null) {
+                        Row(
+                            modifier = Modifier
+                                .padding(16.dp)
+                                .fillMaxWidth(),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.Start
+                        ) {
+                            Icon(
+                                painter = painterResource(id = R.drawable.ic_email),
+                                contentDescription = "Email"
+                            )
+                            Text(
+                                text = org.data.email,
+                                modifier = Modifier.padding(start = 16.dp)
+                            )
+                        }
+
+                        Divider(
+                            color = Color.Black,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(start = 24.dp, end = 24.dp, top = 2.dp, bottom = 2.dp)
+                        )
+
+                    }
+
+                    if (org.data.blog != null) {
+                        Row(
+                            modifier = Modifier
+                                .padding(16.dp)
+                                .fillMaxWidth(),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.Start
+                        ) {
+                            Icon(
+                                painter = painterResource(id = R.drawable.ic_insert_link),
+                                contentDescription = "Corporation"
+                            )
+                            Text(
+                                text = org.data.blog,
+                                modifier = Modifier.padding(start = 16.dp)
+                            )
+                        }
+
+                        Divider(
+                            color = Color.Black,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(start = 24.dp, end = 24.dp, top = 2.dp, bottom = 2.dp)
+                        )
+                    }
+
+                    if (org.data.created_at != null) {
+                        Row(
+                            modifier = Modifier
+                                .padding(16.dp)
+                                .fillMaxWidth(),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.Start
+                        ) {
+                            Icon(
+                                painter = painterResource(id = R.drawable.ic_time),
+                                contentDescription = "Corporation"
+                            )
+                            Text(
+                                text = ParseDateFormat.getTimeAgo(org.data.created_at).toString(),
+                                modifier = Modifier.padding(start = 16.dp)
+                            )
+                        }
+
+                        Divider(
+                            color = Color.Black,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(start = 24.dp, end = 24.dp, top = 2.dp, bottom = 2.dp)
+                        )
+                    }
+
+                    if (org.data.has_organization_projects) {
+                        Row(
+                            modifier = Modifier
+                                .padding(16.dp)
+                                .fillMaxWidth(),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.Start
+                        ) {
+                            Icon(
+                                painter = painterResource(id = R.drawable.ic_project),
+                                tint = Color.Blue,
+                                contentDescription = "Corporation"
+                            )
+                            Text(
+                                text = "Projects",
+                                modifier = Modifier.padding(start = 16.dp),
+                                style = MaterialTheme.typography.titleMedium,
+                                color = Color.Blue
+                            )
+                        }
+                    }
+
+                }
+            }
+        }
+
+        is Resource.Failure -> {
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(Color.White),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.Center
+            ) {
+                androidx.compose.material3.Text(text = "Something went wrong ...")
+            }
+        }
+    }
 
 }
+
 
 @Composable
 private fun Repositories(
@@ -402,7 +640,7 @@ fun OrganisationMemberItemCard(
         modifier = Modifier
             .fillMaxWidth()
             .clickable(onClick = {
-                onItemClicked(0, memberModel.login)
+                onItemClicked(R.id.action_organisationsFragment_to_profileFragment, memberModel.login)
             })
             .padding(4.dp), elevation = 0.dp, backgroundColor = Color.White
     ) {
@@ -459,7 +697,7 @@ private fun TopAppBarContent(
         horizontalArrangement = Arrangement.SpaceBetween
     ) {
         IconButton(onClick = {
-            onBackPressed(R.id.action_organisationsFragment_to_profileFragment, null)
+            onBackPressed(-1, null)
         }) {
             Icon(Icons.Filled.ArrowBack, contentDescription = "Back button")
         }

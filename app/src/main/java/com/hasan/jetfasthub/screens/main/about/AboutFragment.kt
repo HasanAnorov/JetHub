@@ -48,7 +48,7 @@ class AboutFragment : Fragment() {
                 JetFastHubTheme {
                     MainContent(
                         onNavigate = {
-                            findNavController().navigate(R.id.action_aboutFragment_to_homeFragment)
+                            findNavController().popBackStack()
                         }
                     )
                 }
@@ -59,7 +59,7 @@ class AboutFragment : Fragment() {
 }
 
 @Composable
-private fun MainContent(onNavigate: (Int) -> Unit) {
+private fun MainContent(onNavigate: () -> Unit) {
     val state = rememberScaffoldState()
     Scaffold(
         scaffoldState = state,
@@ -70,11 +70,12 @@ private fun MainContent(onNavigate: (Int) -> Unit) {
         Surface(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(16.dp),
+                .padding(16.dp)
+                .padding(contentPadding),
             shadowElevation = 9.dp
         ) {
             Column(
-                modifier = Modifier.padding(8.dp),
+                modifier = Modifier.padding(16.dp),
                 verticalArrangement = Arrangement.Center,
                 horizontalAlignment = Alignment.Start
             ) {
@@ -178,7 +179,7 @@ private fun MainContent(onNavigate: (Int) -> Unit) {
 
 @Composable
 private fun TopAppBarContent(
-    onBackPressed: (Int) -> Unit
+    onBackPressed: () -> Unit
 ) {
     Surface(
         modifier = Modifier
@@ -191,9 +192,7 @@ private fun TopAppBarContent(
             horizontalArrangement = Arrangement.SpaceBetween,
             modifier = Modifier.padding(top = 8.dp, bottom = 8.dp)
         ) {
-            IconButton(onClick = {
-                onBackPressed(R.id.action_aboutFragment_to_homeFragment)
-            }) {
+            IconButton(onClick = { onBackPressed() }) {
                 Icon(Icons.Filled.ArrowBack, contentDescription = "Back button")
             }
 

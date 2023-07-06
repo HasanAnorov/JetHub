@@ -20,37 +20,47 @@ class SearchViewModel(private val repository: SearchRepository) : ViewModel() {
     private var _state: MutableStateFlow<SearchScreenState> = MutableStateFlow(SearchScreenState())
     val state = _state.asStateFlow()
 
-    fun searchRepositories(token: String, query: String, page: Long){
+    fun searchRepositories(token: String, query: String, page: Long) {
         viewModelScope.launch {
-            repository.searchRepositories(token, query, page).let { repositoryModel ->
-                if(repositoryModel.isSuccessful){
-                    _state.update {
-                        it.copy(Repositories = Resource.Success(repositoryModel.body()!!))
+            try {
+                repository.searchRepositories(token, query, page).let { repositoryModel ->
+                    if (repositoryModel.isSuccessful) {
+                        _state.update {
+                            it.copy(Repositories = Resource.Success(repositoryModel.body()!!))
+                        }
+                    } else {
+                        _state.update {
+                            it.copy(
+                                Repositories = Resource.Failure(
+                                    repositoryModel.errorBody().toString()
+                                )
+                            )
+                        }
                     }
-                }else{
-                    _state.update {
-                        it.copy(Repositories = Resource.Failure(repositoryModel.errorBody().toString()))
-                    }
+                }
+            } catch (e: Exception) {
+                _state.update {
+                    it.copy(Repositories = Resource.Failure(e.message.toString()))
                 }
             }
         }
     }
 
-    fun searchUsers(token: String, query: String, page:Long){
+    fun searchUsers(token: String, query: String, page: Long) {
         viewModelScope.launch {
             try {
                 repository.searchUsers(token, query, page).let { userModel ->
-                    if (userModel.isSuccessful){
+                    if (userModel.isSuccessful) {
                         _state.update {
                             it.copy(Users = Resource.Success(userModel.body()!!))
                         }
-                    }else{
+                    } else {
                         _state.update {
                             it.copy(Users = Resource.Failure(userModel.errorBody().toString()))
                         }
                     }
                 }
-            }catch (e: Exception){
+            } catch (e: Exception) {
                 _state.update {
                     it.copy(Users = Resource.Failure(e.message.toString()))
                 }
@@ -58,21 +68,21 @@ class SearchViewModel(private val repository: SearchRepository) : ViewModel() {
         }
     }
 
-    fun searchIssues(token: String, query: String, page: Long){
+    fun searchIssues(token: String, query: String, page: Long) {
         viewModelScope.launch {
             try {
                 repository.searchIssues(token, query, page).let { issuesModel ->
-                    if(issuesModel.isSuccessful){
+                    if (issuesModel.isSuccessful) {
                         _state.update {
                             it.copy(Issues = Resource.Success(issuesModel.body()!!))
                         }
-                    }else{
+                    } else {
                         _state.update {
                             it.copy(Issues = Resource.Failure(issuesModel.errorBody().toString()))
                         }
                     }
                 }
-            }catch (e:Exception){
+            } catch (e: Exception) {
                 _state.update {
                     it.copy(Issues = Resource.Failure(e.message.toString()))
                 }
@@ -80,25 +90,29 @@ class SearchViewModel(private val repository: SearchRepository) : ViewModel() {
         }
     }
 
-    fun searchCodes(token: String, query: String, page: Long){
+    fun searchCodes(token: String, query: String, page: Long) {
         viewModelScope.launch {
-            //try {
+            try {
                 repository.searchCodes(token, query, page).let { codeModelResponse ->
-                    if(codeModelResponse.isSuccessful){
+                    if (codeModelResponse.isSuccessful) {
                         _state.update {
                             it.copy(Codes = Resource.Success(codeModelResponse.body()!!))
                         }
-                    }else{
+                    } else {
                         _state.update {
-                            it.copy(Codes = Resource.Failure(codeModelResponse.errorBody().toString()))
+                            it.copy(
+                                Codes = Resource.Failure(
+                                    codeModelResponse.errorBody().toString()
+                                )
+                            )
                         }
                     }
                 }
-//            }catch (e: Exception){
-//                _state.update {
-//                    it.copy(Codes = Resource.Failure(e.message.toString()))
-//                }
-//            }
+            } catch (e: Exception) {
+                _state.update {
+                    it.copy(Codes = Resource.Failure(e.message.toString()))
+                }
+            }
         }
     }
 

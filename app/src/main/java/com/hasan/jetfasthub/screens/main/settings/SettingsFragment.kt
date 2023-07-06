@@ -6,7 +6,9 @@ import android.view.View
 import android.view.ViewGroup
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.Scaffold
@@ -26,7 +28,6 @@ import androidx.compose.ui.platform.ComposeView
 import androidx.compose.ui.unit.dp
 import androidx.fragment.app.Fragment
 import androidx.navigation.fragment.findNavController
-import com.hasan.jetfasthub.R
 import com.hasan.jetfasthub.ui.theme.JetFastHubTheme
 
 class SettingsFragment : Fragment() {
@@ -41,7 +42,7 @@ class SettingsFragment : Fragment() {
                 JetFastHubTheme {
                     MainContent(
                         onNavigate = {
-                            findNavController().navigate(R.id.action_aboutFragment_to_homeFragment)
+                            findNavController().popBackStack()
                         }
                     )
                 }
@@ -52,7 +53,7 @@ class SettingsFragment : Fragment() {
 }
 
 @Composable
-private fun MainContent(onNavigate: (Int) -> Unit) {
+private fun MainContent(onNavigate: () -> Unit) {
     val state = rememberScaffoldState()
     Scaffold(
         scaffoldState = state,
@@ -60,13 +61,19 @@ private fun MainContent(onNavigate: (Int) -> Unit) {
             TopAppBarContent(onNavigate)
         }
     ) { contentPadding ->
+        Column(
+            modifier = Modifier
+                .padding(contentPadding)
+                .fillMaxSize()
+        ) {
 
+        }
     }
 }
 
 @Composable
 private fun TopAppBarContent(
-    onBackPressed: (Int) -> Unit
+    onBackPressed: () -> Unit
 ) {
     Surface(
         modifier = Modifier
@@ -80,7 +87,7 @@ private fun TopAppBarContent(
             modifier = Modifier.padding(top = 8.dp, bottom = 8.dp)
         ) {
             IconButton(onClick = {
-                onBackPressed(R.id.action_settingsFragment_to_homeFragment)
+                onBackPressed()
             }) {
                 Icon(Icons.Filled.ArrowBack, contentDescription = "Back button")
             }

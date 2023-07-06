@@ -12,12 +12,12 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
-class GistsViewModel(private val repository: GistsRepository ): ViewModel() {
+class GistsViewModel(private val repository: GistsRepository) : ViewModel() {
 
     private var _state: MutableStateFlow<GistsScreenState> = MutableStateFlow(GistsScreenState())
     val state = _state.asStateFlow()
 
-    fun getStarredGists(token: String, page: Int){
+    fun getStarredGists(token: String, page: Int) {
         viewModelScope.launch {
             try {
                 repository.getStarredGists(token, page).let { gists ->
@@ -69,7 +69,7 @@ class GistsViewModel(private val repository: GistsRepository ): ViewModel() {
         }
     }
 
-    fun getPublicGists(token: String, perPage: Int, page: Int){
+    fun getPublicGists(token: String, perPage: Int, page: Int) {
         viewModelScope.launch {
             try {
                 repository.getPublicGists(token, perPage, page).let { gists ->

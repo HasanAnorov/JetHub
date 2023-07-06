@@ -26,6 +26,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.BottomNavigationItem
 import androidx.compose.material.Card
+import androidx.compose.material.DrawerState
 import androidx.compose.material.Scaffold
 import androidx.compose.material.ScaffoldState
 import androidx.compose.material.Surface
@@ -101,6 +102,7 @@ class HomeFragment : Fragment() {
         destinations["faq_fragment"] = R.id.action_homeFragment_to_faqFragment
         destinations["gists_fragment"] = R.id.action_homeFragment_to_gistsFragment
         destinations["notifications_fragment"] = R.id.action_homeFragment_to_notificationsFragment
+        destinations["add_account_fragment"] = R.id.action_homeFragment_to_addAccountFragment
 
         val token = PreferenceHelper.getToken(requireContext())
         val username = "HasanAnorov"
@@ -156,7 +158,19 @@ private fun MainContent(
                 },
             )
         },
-        drawerContent = { DrawerContent(state.user, scaffoldState, scope, onNavigate) },
+        drawerContent = {
+            DrawerContent(
+                user = state.user,
+                state = scaffoldState.drawerState,
+                scope = scope,
+                closeDrawer = {
+                    scope.launch {
+                        scaffoldState.drawerState.close()
+                    }
+                },
+                onNavigate = onNavigate
+            )
+        },
         content = { contentPadding ->
             when (state.selectedBottomBarItem) {
                 AppScreens.Feeds -> FeedsScreen(
@@ -195,9 +209,10 @@ private fun TopAppBarContent(
     ) {
         IconButton(onClick = {
             scope.launch {
-                state.drawerState.apply {
-                    if (isClosed) open() else close()
-                }
+//                state.drawerState.apply {
+//                    if (isClosed) open() else close()
+//                }
+                state.drawerState.open()
             }
             Log.d("ahi3646", "TopAppBarContent:${state.drawerState.currentValue} ")
         }) {
@@ -324,11 +339,11 @@ fun FeedsScreen(
             Column(
                 modifier = Modifier
                     .fillMaxSize()
-                    .background(MaterialTheme.colorScheme.primaryContainer),
+                    .background(Color.White),
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.Center
             ) {
-                Text(text = "Something went wrong - ${receivedEventsState.message}")
+                Text(text = "Something went wrong !")
             }
         }
     }
@@ -441,13 +456,13 @@ fun ItemEventCard(
     }
 }
 
-
 //things related to drawer content
 @Composable
 private fun DrawerContent(
     user: Resource<GitHubUser>,
-    state: ScaffoldState,
+    state: DrawerState,
     scope: CoroutineScope,
+    closeDrawer: () -> Unit,
     onNavigate: (String, String?) -> Unit
 ) {
     ModalDrawerSheet {
@@ -483,16 +498,12 @@ private fun DrawerContent(
         DrawerTabScreen(
             username = user.data?.login ?: "",
             closeDrawer = {
-                scope.launch {
-                    state.drawerState.apply {
-                        if (isClosed) open() else close()
-                    }
-                }
+                closeDrawer()
+                scope.launch { state.close() }
             },
             onNavigate = { dest, username ->
-                scope.launch {
-                    state.drawerState.close()
-                }
+                closeDrawer()
+                scope.launch { state.close() }
                 onNavigate(dest, username)
             }
         )
@@ -531,7 +542,7 @@ fun DrawerTabScreen(
         }
         when (tabIndex) {
             0 -> DrawerMenuScreen(username, closeDrawer, onNavigate)
-            1 -> DrawerProfileScreen()
+            1 -> DrawerProfileScreen(closeDrawer, onNavigate)
         }
     }
 }
@@ -740,7 +751,7 @@ fun DrawerMenuScreen(
             modifier = Modifier
                 .fillMaxWidth(1F)
                 .padding(top = 2.dp, bottom = 2.dp)
-                .clickable {  }) {
+                .clickable { }) {
             Image(
                 painter = painterResource(id = R.drawable.ic_money),
                 contentDescription = "Restore Purchases icon",
@@ -774,7 +785,10 @@ fun DrawerMenuScreen(
 }
 
 @Composable
-fun DrawerProfileScreen() {
+fun DrawerProfileScreen(
+    closeDrawer: () -> Unit,
+    onNavigate: (String, String?) -> Unit
+) {
     Column(
         modifier = Modifier.fillMaxSize(),
         horizontalAlignment = Alignment.Start,
@@ -805,7 +819,11 @@ fun DrawerProfileScreen() {
             modifier = Modifier
                 .fillMaxWidth(1F)
                 .padding(top = 4.dp, bottom = 2.dp)
-                .clickable { }) {
+                .clickable {
+                    closeDrawer()
+                    onNavigate("add_account_fragment", null)
+                }
+        ) {
             Image(
                 painter = painterResource(id = R.drawable.ic_add),
                 contentDescription = "Add Account icon",

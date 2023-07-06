@@ -24,8 +24,6 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.Card
 import androidx.compose.material.Scaffold
 import androidx.compose.material.TabRow
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.rememberScaffoldState
 import androidx.compose.material3.Divider
 import androidx.compose.material3.Icon
@@ -56,6 +54,7 @@ import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.fragment.app.Fragment
+import androidx.navigation.findNavController
 import com.hasan.jetfasthub.R
 import com.hasan.jetfasthub.data.PreferenceHelper
 import com.hasan.jetfasthub.screens.main.gists.model.StarredGistModel
@@ -95,6 +94,9 @@ class GistsFragment : Fragment() {
                     MainContent(
                         state = state,
                         onNavigate = { dest, data ->
+                            if (dest==-1){
+                                findNavController().popBackStack()
+                            }
                             Log.d("ahi3646", "onCreateView: $dest , $data ")
                         }
                     )
@@ -107,11 +109,11 @@ class GistsFragment : Fragment() {
 
 
 @Composable
-fun MainContent(state: GistsScreenState, onNavigate: (String, String?) -> Unit) {
+fun MainContent(state: GistsScreenState, onNavigate: (Int, String?) -> Unit) {
     val scaffoldState = rememberScaffoldState()
     Scaffold(
         scaffoldState = scaffoldState,
-        topBar = { TopAppBarContent() }
+        topBar = { TopAppBarContent(onNavigate) }
     ) { paddingValues ->
         TabScreen(contentPaddingValues = paddingValues, state, onNavigate)
     }
@@ -121,7 +123,7 @@ fun MainContent(state: GistsScreenState, onNavigate: (String, String?) -> Unit) 
 fun TabScreen(
     contentPaddingValues: PaddingValues,
     state: GistsScreenState,
-    onRecyclerItemClick: (String, String?) -> Unit
+    onRecyclerItemClick: (Int, String?) -> Unit
 ) {
 
     var tabIndex by remember { mutableStateOf(0) }
@@ -135,7 +137,7 @@ fun TabScreen(
     ) {
         TabRow(
             selectedTabIndex = tabIndex,
-            backgroundColor = Color.Transparent,
+            backgroundColor = Color.White,
             contentColor = Color.Blue
         ) {
             tabs.forEachIndexed { index, title ->
@@ -161,7 +163,7 @@ fun TabScreen(
 }
 
 @Composable
-fun MyGists(state: Resource<GistModel>, onRecyclerItemClick: (String, String?) -> Unit) {
+fun MyGists(state: Resource<GistModel>, onRecyclerItemClick: (Int, String?) -> Unit) {
     when (state) {
         is Resource.Loading -> {
             Column(
@@ -197,11 +199,18 @@ fun MyGists(state: Resource<GistModel>, onRecyclerItemClick: (String, String?) -
                     }
                 }
             } else {
-                Text(
-                    text = "No news",
-                    textAlign = TextAlign.Center,
-                    modifier = Modifier.fillMaxSize()
-                )
+                Column(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .background(Color.White),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.Center
+                ) {
+                    Text(
+                        text = "No news",
+                        textAlign = TextAlign.Center,
+                    )
+                }
             }
         }
 
@@ -222,13 +231,13 @@ fun MyGists(state: Resource<GistModel>, onRecyclerItemClick: (String, String?) -
 
 @Composable
 fun GistItemCard(
-    gistModelItem: GistModelItem, onGistItemClick: (String, String?) -> Unit
+    gistModelItem: GistModelItem, onGistItemClick: (Int, String?) -> Unit
 ) {
     Card(
         modifier = Modifier
             .fillMaxWidth()
             .clickable(onClick = {
-                onGistItemClick("enter_dest", gistModelItem.url)
+                onGistItemClick(0, gistModelItem.url)
             })
             .padding(4.dp), elevation = 0.dp, backgroundColor = Color.White
     ) {
@@ -262,7 +271,7 @@ fun GistItemCard(
 }
 
 @Composable
-fun Starred(state: Resource<StarredGistModel>, onRecyclerItemClick: (String, String?) -> Unit) {
+fun Starred(state: Resource<StarredGistModel>, onRecyclerItemClick: (Int, String?) -> Unit) {
     when (state) {
         is Resource.Loading -> {
             Column(
@@ -298,11 +307,18 @@ fun Starred(state: Resource<StarredGistModel>, onRecyclerItemClick: (String, Str
                     }
                 }
             } else {
-                Text(
-                    text = "No news",
-                    textAlign = TextAlign.Center,
-                    modifier = Modifier.fillMaxSize()
-                )
+                Column(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .background(Color.White),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.Center
+                ) {
+                    Text(
+                        text = "No news",
+                        textAlign = TextAlign.Center,
+                    )
+                }
             }
         }
 
@@ -323,13 +339,13 @@ fun Starred(state: Resource<StarredGistModel>, onRecyclerItemClick: (String, Str
 
 @Composable
 private fun StarredGistsItem(
-    gist: StarredGistModelItem, onItemClicked: (String, String?) -> Unit
+    gist: StarredGistModelItem, onItemClicked: (Int, String?) -> Unit
 ) {
     Card(
         modifier = Modifier
             .fillMaxWidth()
             .clickable(onClick = {
-                onItemClicked("enter_dest", gist.description)
+                onItemClicked(0, gist.description)
             })
             .padding(4.dp), elevation = 0.dp, backgroundColor = Color.White
     ) {
@@ -392,7 +408,7 @@ private fun StarredGistsItem(
 }
 
 @Composable
-fun PublicGists(state: Resource<PublicGistsModel>, onRecyclerItemClick: (String, String?) -> Unit) {
+fun PublicGists(state: Resource<PublicGistsModel>, onRecyclerItemClick: (Int, String?) -> Unit) {
     when (state) {
         is Resource.Loading -> {
             Column(
@@ -428,11 +444,18 @@ fun PublicGists(state: Resource<PublicGistsModel>, onRecyclerItemClick: (String,
                     }
                 }
             } else {
-                Text(
-                    text = "No news",
-                    textAlign = TextAlign.Center,
-                    modifier = Modifier.fillMaxSize()
-                )
+                Column(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .background(Color.White),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.Center
+                ) {
+                    Text(
+                        text = "No news",
+                        textAlign = TextAlign.Center,
+                    )
+                }
             }
         }
 
@@ -453,13 +476,13 @@ fun PublicGists(state: Resource<PublicGistsModel>, onRecyclerItemClick: (String,
 
 @Composable
 private fun PublicGistsItem(
-    gist: PublicGistsModelItem, onItemClicked: (String, String?) -> Unit
+    gist: PublicGistsModelItem, onItemClicked: (Int, String?) -> Unit
 ) {
     Card(
         modifier = Modifier
             .fillMaxWidth()
             .clickable(onClick = {
-                onItemClicked("enter_dest", gist.description)
+                onItemClicked(0, gist.description)
             })
             .padding(4.dp), elevation = 0.dp, backgroundColor = Color.White
     ) {
@@ -493,7 +516,9 @@ private fun PublicGistsItem(
                         withStyle(style = SpanStyle(fontWeight = FontWeight.Bold)) {
                             append(gist.owner.login + "/ ")
                         }
-                        append(gist.files.hello_world_rb.filename)
+                        if (gist.files.hello_world_rb != null) {
+                            append(gist.files.hello_world_rb.filename)
+                        }
                     },
                     modifier = Modifier.padding(0.dp, 0.dp, 12.dp, 0.dp),
                     color = Color.Black,
@@ -528,7 +553,7 @@ private fun PublicGistsItem(
 
 @Composable
 private fun TopAppBarContent(
-    //onBackPressed: (Int) -> Unit
+    onBackPressed: (Int, String?) -> Unit
 ) {
     Surface(
         modifier = Modifier
@@ -537,12 +562,16 @@ private fun TopAppBarContent(
         Row(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.SpaceBetween,
-            modifier = Modifier.padding(top = 4.dp, bottom = 4.dp)
-        ) {
+            modifier = Modifier
+                .padding(top = 4.dp, bottom = 4.dp)
+                .fillMaxWidth()
+                .background(Color.White),
+
+            ) {
             IconButton(onClick = {
-                //onBackPressed(R.id.action_aboutFragment_to_homeFragment)
+                onBackPressed(-1, null)
             }) {
-                Icon(Icons.Filled.ArrowBack, contentDescription = "Back button")
+                Icon(painter = painterResource(id = R.drawable.ic_back), contentDescription = "Back button")
             }
 
             Text(

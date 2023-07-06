@@ -78,6 +78,15 @@
             app:popExitAnim="@anim/fade_out"
             app:popUpTo="@id/homeFragment"
             app:destination="@id/gistsFragment" />
+        <action
+            android:id="@+id/action_homeFragment_to_addAccountFragment"
+            app:launchSingleTop="true"
+            app:enterAnim="@anim/fade_in"
+            app:exitAnim="@anim/fade_out"
+            app:popEnterAnim="@anim/fade_in"
+            app:popExitAnim="@anim/fade_out"
+            app:popUpTo="@id/homeFragment"
+            app:destination="@id/addAccountFragment" />
 
     </fragment>
 
@@ -103,7 +112,7 @@
             app:exitAnim="@anim/fade_out"
             app:popEnterAnim="@anim/fade_in"
             app:popExitAnim="@anim/fade_out"
-            app:popUpTo="@id/homeFragment"
+            app:popUpTo="@id/profileFragment"
             app:destination="@id/organisationsFragment" />
 
     </fragment>
@@ -190,6 +199,22 @@
         <action
             android:id="@+id/action_organisationsFragment_to_profileFragment"
             app:destination="@id/profileFragment"
+            app:popUpTo="@id/profileFragment"
+            app:enterAnim="@anim/fade_in"
+            app:exitAnim="@anim/fade_out"
+            app:popEnterAnim="@anim/fade_in"
+            app:popExitAnim="@anim/fade_out"
+            app:popUpToInclusive="true"/>
+    </fragment>
+
+    <fragment
+        android:id="@+id/addAccountFragment"
+        android:name="com.hasan.jetfasthub.screens.main.add_account.AddAccountFragment"
+        android:label="AddAccountFragment" >
+
+        <action
+            android:id="@+id/action_addAccountFragment_to_homeFragment"
+            app:destination="@id/homeFragment"
             app:popUpTo="@id/homeFragment"
             app:enterAnim="@anim/fade_in"
             app:exitAnim="@anim/fade_out"

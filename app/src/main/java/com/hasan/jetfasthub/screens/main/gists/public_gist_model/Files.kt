@@ -4,5 +4,5 @@ import com.google.gson.annotations.SerializedName
 
 data class Files(
     @SerializedName("hello_world.rb")
-    val hello_world_rb: HelloWorldRb
+    val hello_world_rb: HelloWorldRb?
 )

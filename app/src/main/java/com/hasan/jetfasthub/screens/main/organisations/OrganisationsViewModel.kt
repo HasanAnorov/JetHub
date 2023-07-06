@@ -5,6 +5,7 @@ import androidx.lifecycle.viewModelScope
 import com.hasan.jetfasthub.data.OrganisationRepository
 import com.hasan.jetfasthub.screens.main.organisations.model.OrganisationMemberModel
 import com.hasan.jetfasthub.screens.main.organisations.org_repo_model.OrganisationsRepositoryModel
+import com.hasan.jetfasthub.screens.main.organisations.organisation_model.OrganisationModel
 import com.hasan.jetfasthub.utility.Resource
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -72,10 +73,37 @@ class OrganisationsViewModel(private val repository: OrganisationRepository) : V
         }
     }
 
-
+    fun getOrg(token: String, organisation: String){
+        viewModelScope.launch {
+            try {
+                repository.getOrganisation(token, organisation).let { org ->
+                    if (org.isSuccessful){
+                        _state.update {
+                            it.copy(
+                                Organisation = Resource.Success(org.body()!!)
+                            )
+                        }
+                    }else{
+                        _state.update {
+                            it.copy(
+                                Organisation = Resource.Failure(org.errorBody().toString())
+                            )
+                        }
+                    }
+                }
+            }catch (e: Exception){
+                _state.update {
+                    it.copy(
+                        Organisation = Resource.Failure(e.message.toString())
+                    )
+                }
+            }
+        }
+    }
 }
 
 data class OrganisationScreenState(
     val OrganisationMembers: Resource<OrganisationMemberModel> = Resource.Loading(),
-    val OrganisationRepos: Resource<OrganisationsRepositoryModel> = Resource.Loading()
+    val OrganisationRepos: Resource<OrganisationsRepositoryModel> = Resource.Loading(),
+    val Organisation: Resource<OrganisationModel> = Resource.Loading()
 )

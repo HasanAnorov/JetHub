@@ -76,7 +76,13 @@ class NotificationsFragment : Fragment() {
                 JetFastHubTheme {
                     MainContent(
                         state = state,
-                        onNavigate = { dest -> findNavController().navigate(dest) },
+                        onNavigate = { dest ->
+                            if (dest == -1) {
+                                findNavController().popBackStack()
+                            }else{
+                                findNavController().navigate(dest)
+                            }
+                        },
                         onRecyclerItemClick = { id ->
                             notificationsViewModel.markAsRead(token, id)
                             Log.d("ahi3646", "onRecyclerviewItem Click : $id ")
@@ -124,7 +130,7 @@ private fun TopAppBarContent(
         horizontalArrangement = Arrangement.SpaceBetween
     ) {
         IconButton(onClick = {
-            onBackPressed(R.id.action_notificationsFragment_to_homeFragment)
+            onBackPressed(-1)
         }) {
             Icon(Icons.Filled.ArrowBack, contentDescription = "Back button")
         }
@@ -202,11 +208,18 @@ fun UnreadNotifications(unreadNotifications: Resource<Notification>, markAsRead:
                     }
                 }
             } else {
-                Text(
-                    text = "No news",
-                    textAlign = TextAlign.Center,
-                    modifier = Modifier.fillMaxSize()
-                )
+                Column(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .background(Color.White),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.Center
+                ) {
+                    Text(
+                        text = "No news",
+                        textAlign = TextAlign.Center
+                    )
+                }
             }
         }
 
@@ -255,11 +268,18 @@ fun AllNotifications(allNotifications: Resource<Notification>) {
                     }
                 }
             } else {
-                Text(
-                    text = "No news",
-                    textAlign = TextAlign.Center,
-                    modifier = Modifier.fillMaxSize()
-                )
+                Column(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .background(Color.White),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.Center
+                ) {
+                    Text(
+                        text = "No news",
+                        textAlign = TextAlign.Center
+                    )
+                }
             }
         }
 
@@ -289,7 +309,9 @@ fun JetHubNotifications(jetHubNotifications: Resource<Notification>) {
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.Center
             ) {
-                Text(text = "Loading ...")
+                //Text(text = "Loading ...")
+                //Currently there is no notification feature in JetHub
+                Text(text = "No news")
             }
         }
 

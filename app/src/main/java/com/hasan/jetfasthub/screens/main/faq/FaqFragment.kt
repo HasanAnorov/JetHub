@@ -11,7 +11,6 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
@@ -28,9 +27,9 @@ import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.withStyle
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.fragment.app.Fragment
+import androidx.navigation.fragment.findNavController
 import com.hasan.jetfasthub.ui.theme.JetFastHubTheme
 
 class FaqFragment : Fragment() {
@@ -42,8 +41,10 @@ class FaqFragment : Fragment() {
     ): View {
         return ComposeView(requireContext()).apply {
             setContent {
-                JetFastHubTheme() {
-                    MainContent()
+                JetFastHubTheme {
+                    MainContent{
+                        findNavController().popBackStack()
+                    }
                 }
             }
         }
@@ -51,10 +52,9 @@ class FaqFragment : Fragment() {
 
 }
 
-
 @Composable
-private fun MainContent() {
-    Surface() {
+private fun MainContent(onDoneClicked: () -> Unit) {
+    Surface {
         Column(
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Top,
@@ -98,7 +98,7 @@ private fun MainContent() {
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .clickable { },
+                    .clickable { onDoneClicked() },
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.Center,
             ) {

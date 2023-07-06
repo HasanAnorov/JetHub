@@ -34,7 +34,6 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.rememberScaffoldState
 import androidx.compose.material3.Divider
-import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.ScrollableTabRow
@@ -113,7 +112,7 @@ class SearchFragment : Fragment() {
                                 viewModel.searchCodes(token, query, 1L)
                             }
                         },
-                        onBackPressed = { dest -> findNavController().navigate(dest) }
+                        onBackPressed = { findNavController().popBackStack() }
                     )
                 }
             }
@@ -126,7 +125,7 @@ fun MainContent(
     state: SearchScreenState,
     onListItemClick: (String) -> Unit,
     onSearchClick: (String) -> Unit,
-    onBackPressed: (Int) -> Unit
+    onBackPressed: () -> Unit
 ) {
     val scaffoldState = rememberScaffoldState()
     Scaffold(
@@ -205,7 +204,12 @@ fun TabScreen(
             }
         }
         when (tabIndex) {
-            0 -> RepositoriesContent(contentPaddingValues, state.Repositories, onListItemClick)
+            0 -> RepositoriesContent(
+                contentPaddingValues = contentPaddingValues,
+                repositories = state.Repositories,
+                onNavigate = onListItemClick
+            )
+
             1 -> UsersContent(
                 contentPaddingValues = contentPaddingValues,
                 onUsersItemClicked = onListItemClick,
@@ -720,11 +724,10 @@ fun CodesItem(
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun TopAppBarContent(
     onSearchItemClick: (String) -> Unit,
-    onBackPressed: (Int) -> Unit
+    onBackPressed: () -> Unit
 ) {
     Row(
         modifier = Modifier
@@ -734,7 +737,7 @@ fun TopAppBarContent(
         horizontalArrangement = Arrangement.SpaceBetween
     ) {
         IconButton(onClick = {
-            onBackPressed(R.id.action_searchFragment_to_homeFragment)
+            onBackPressed()
         }) {
             Icon(Icons.Filled.ArrowBack, contentDescription = "Back button")
         }
@@ -759,8 +762,10 @@ fun TopAppBarContent(
                     }
                 }
             },
-            colors = TextFieldDefaults.textFieldColors(
-                containerColor = Color.Transparent,
+            colors = TextFieldDefaults.colors(
+                focusedContainerColor = Color.Transparent,
+                unfocusedContainerColor = Color.Transparent,
+                disabledContainerColor = Color.Transparent,
                 focusedIndicatorColor = Color.Transparent,
                 unfocusedIndicatorColor = Color.Transparent,
             ),

@@ -18,7 +18,6 @@ import retrofit2.Response
 
 class LoginActivity : AppCompatActivity(R.layout.activity_login) {
 
-
     private val viewModel: LoginViewModel by viewModel()
 
     override fun onResume() {
@@ -64,7 +63,7 @@ class LoginActivity : AppCompatActivity(R.layout.activity_login) {
         when (status) {
             is Resource.Loading -> {}
             is Resource.Success -> {
-                status.data.let { it ->
+                status.data.let {
                     val token = it?.body()?.access_token.toString()
                     PreferenceHelper.saveToken(this, token)
                     navigateToMainScreen()
