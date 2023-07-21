@@ -1,14 +1,19 @@
 package com.hasan.jetfasthub.screens.main.home
 
+import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.hasan.jetfasthub.data.HomeRepository
-import com.hasan.jetfasthub.screens.main.home.received_model.ReceivedEvents
+import com.hasan.jetfasthub.screens.main.home.authenticated_user.AuthenticatedUser
+import com.hasan.jetfasthub.screens.main.home.received_events_model.ReceivedEventsModel
 import com.hasan.jetfasthub.screens.main.home.user_model.GitHubUser
 import com.hasan.jetfasthub.utility.Resource
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.channels.awaitClose
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.callbackFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
@@ -25,6 +30,31 @@ class HomeViewModel(
         }
     }
 
+    fun getAuthenticatedUser(token: String): Flow<AuthenticatedUser> = callbackFlow{
+        viewModelScope.launch {
+            try {
+                repository.getAuthenticatedUser(token).let { authenticatedUser ->
+                    if(authenticatedUser.isSuccessful){
+                        trySend(authenticatedUser.body()!!)
+                    }else{
+                        _state.update {
+                            it.copy(user = Resource.Failure(authenticatedUser.errorBody().toString()))
+                        }
+                    }
+                }
+            }catch (e: Exception){
+                _state.update {
+                    it.copy(user = Resource.Failure(e.message.toString()))
+                }
+            }
+        }
+        awaitClose {
+            channel.close()
+            Log.d("ahi3646", "getAuthenticatedUser: callback channel stopped ")
+        }
+    }
+
+
     fun getUser(token: String, username: String) {
         viewModelScope.launch(Dispatchers.IO) {
             repository.getUser(token, username).let { gitHubUser ->
@@ -40,6 +70,7 @@ class HomeViewModel(
             }
         }
     }
+
 
     fun getReceivedEvents(token: String, username: String) {
         viewModelScope.launch(Dispatchers.IO) {
@@ -63,8 +94,8 @@ class HomeViewModel(
 }
 
 data class HomeScreenState(
-    val selectedBottomBarItem: AppScreens = AppScreens.Feeds,
     val user: Resource<GitHubUser> = Resource.Loading(),
+    val selectedBottomBarItem: AppScreens = AppScreens.Feeds,
     val receivedEventsState: ReceivedEventsState = ReceivedEventsState.Loading
 )
 
@@ -74,15 +105,9 @@ sealed interface AppScreens {
     object PullRequests : AppScreens
 }
 
-//you have  used Resource instead (generics)
-sealed interface GitHubUserState {
-    object Loading : GitHubUserState
-    data class Success(val user: GitHubUser) : GitHubUserState
-    data class Error(val message: String) : GitHubUserState
-}
 
 sealed interface ReceivedEventsState {
     object Loading : ReceivedEventsState
-    data class Success(val events: ReceivedEvents) : ReceivedEventsState
+    data class Success(val events: ReceivedEventsModel) : ReceivedEventsState
     data class Error(val message: String) : ReceivedEventsState
 }

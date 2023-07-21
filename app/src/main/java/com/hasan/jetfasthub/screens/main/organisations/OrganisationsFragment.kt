@@ -1,13 +1,14 @@
 package com.hasan.jetfasthub.screens.main.organisations
 
+import android.content.Intent
+import android.net.Uri
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-import android.widget.Toast
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.gestures.scrollable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -58,8 +59,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.text.withStyle
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.core.content.ContextCompat
 import androidx.fragment.app.Fragment
 import androidx.navigation.fragment.findNavController
 import com.hasan.jetfasthub.R
@@ -106,16 +107,49 @@ class OrganisationsFragment : Fragment() {
                         onRecyclerItemClick = { dest, data ->
                             if (data != null) {
                                 val bundle = Bundle()
-                                bundle.putString("organisation_fragment", data)
+                                bundle.putString("home_data", data)
                                 findNavController().navigate(dest, bundle)
-                            }
-                            else if(dest == -1){
+                            } else if (dest == -1) {
                                 findNavController().popBackStack()
-                            }
-                            else {
+                            } else {
                                 findNavController().navigate(dest)
                             }
-                        })
+                        },
+                        onAction = {action, data ->
+                            when (action) {
+                                "share" -> {
+                                    val context = requireContext()
+                                    val type = "text/plain"
+                                    val subject = "Your subject"
+                                    val shareWith = "ShareWith"
+
+                                    val intent = Intent(Intent.ACTION_SEND)
+                                    intent.type = type
+                                    intent.putExtra(Intent.EXTRA_SUBJECT, subject)
+                                    intent.putExtra(Intent.EXTRA_TEXT, "https://github.com/$data")
+
+                                    ContextCompat.startActivity(
+                                        context,
+                                        Intent.createChooser(intent, shareWith),
+                                        null
+                                    )
+                                }
+
+                                "browser" -> {
+                                    var webpage = Uri.parse(data)
+
+                                    if (!data.startsWith("http://") && !data.startsWith("https://")) {
+                                        webpage = Uri.parse("http://$data")
+                                    }
+                                    val urlIntent = Intent(
+                                        Intent.ACTION_VIEW,
+                                        webpage
+                                    )
+                                    requireContext().startActivity(urlIntent)
+                                }
+                            }
+                        }
+                    )
                 }
             }
         }
@@ -127,7 +161,8 @@ class OrganisationsFragment : Fragment() {
 private fun MainContent(
     state: OrganisationScreenState,
     organisation: String,
-    onRecyclerItemClick: (Int, String?) -> Unit
+    onRecyclerItemClick: (Int, String?) -> Unit,
+    onAction: (String, String) -> Unit
 ) {
     val scaffoldState = rememberScaffoldState()
     Scaffold(scaffoldState = scaffoldState, topBar = {
@@ -135,11 +170,11 @@ private fun MainContent(
             backgroundColor = Color.White,
             elevation = 0.dp,
             content = {
-                TopAppBarContent(onRecyclerItemClick, organisation)
+                TopAppBarContent(onRecyclerItemClick, organisation, onAction)
             },
         )
     }) { paddingValues ->
-        TabScreen(paddingValues, state, onRecyclerItemClick)
+        TabScreen(paddingValues, state, onRecyclerItemClick, onAction )
     }
 }
 
@@ -147,7 +182,8 @@ private fun MainContent(
 private fun TabScreen(
     paddingValues: PaddingValues,
     state: OrganisationScreenState,
-    onRecyclerItemClick: (Int, String?) -> Unit
+    onRecyclerItemClick: (Int, String?) -> Unit,
+    onAction: (String, String) -> Unit
 ) {
 
     var tabIndex by remember { mutableStateOf(0) }
@@ -177,7 +213,7 @@ private fun TabScreen(
 
         when (tabIndex) {
             0 -> {
-                Overview(state.Organisation, onRecyclerItemClick)
+                Overview(state.Organisation, onAction, onRecyclerItemClick)
             }
 
             1 -> {
@@ -196,6 +232,7 @@ private fun TabScreen(
 @Composable
 private fun Overview(
     org: Resource<OrganisationModel>,
+    onAction: (String, String) -> Unit,
     onRecyclerItemClick: (Int, String?) -> Unit
 ) {
 
@@ -317,7 +354,13 @@ private fun Overview(
                             )
                             Text(
                                 text = org.data.email,
-                                modifier = Modifier.padding(start = 16.dp)
+                                modifier = Modifier.padding(start = 16.dp).clickable(
+                                    indication = null,
+                                    interactionSource = remember { MutableInteractionSource() }
+                                ) {
+                                    onAction("share", org.data.email )
+                                },
+                                color = Color.Blue
                             )
                         }
 
@@ -344,7 +387,15 @@ private fun Overview(
                             )
                             Text(
                                 text = org.data.blog,
-                                modifier = Modifier.padding(start = 16.dp)
+                                modifier = Modifier
+                                    .padding(start = 16.dp)
+                                    .clickable(
+                                        indication = null,
+                                        interactionSource = remember { MutableInteractionSource() }
+                                    ) {
+                                      onAction("browser", org.data.blog )
+                                    },
+                                color = Color.Blue
                             )
                         }
 
@@ -640,7 +691,10 @@ fun OrganisationMemberItemCard(
         modifier = Modifier
             .fillMaxWidth()
             .clickable(onClick = {
-                onItemClicked(R.id.action_organisationsFragment_to_profileFragment, memberModel.login)
+                onItemClicked(
+                    R.id.action_organisationsFragment_to_profileFragment,
+                    memberModel.login
+                )
             })
             .padding(4.dp), elevation = 0.dp, backgroundColor = Color.White
     ) {
@@ -687,7 +741,9 @@ fun OrganisationMemberItemCard(
 
 @Composable
 private fun TopAppBarContent(
-    onBackPressed: (Int, String?) -> Unit, organisation: String
+    onBackPressed: (Int, String?) -> Unit,
+    organisation: String,
+    onAction: (String, String) -> Unit
 ) {
     Row(
         modifier = Modifier
@@ -711,7 +767,7 @@ private fun TopAppBarContent(
             style = MaterialTheme.typography.titleMedium,
         )
 
-        IconButton(onClick = { }) {
+        IconButton(onClick = { onAction("share", organisation) }) {
             Icon(Icons.Filled.Share, contentDescription = "Share")
         }
     }

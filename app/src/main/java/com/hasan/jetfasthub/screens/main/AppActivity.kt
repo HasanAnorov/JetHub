@@ -2,14 +2,7 @@ package com.hasan.jetfasthub.screens.main
 
 import android.os.Bundle
 import androidx.appcompat.app.AppCompatActivity
-import androidx.compose.runtime.Composable
-import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.ViewCompositionStrategy
-import androidx.navigation.fragment.NavHostFragment
-import androidx.navigation.ui.setupActionBarWithNavController
-import com.hasan.jetfasthub.R
 import com.hasan.jetfasthub.databinding.ActivityMainBinding
-import com.hasan.jetfasthub.ui.theme.JetFastHubTheme
 
 class AppActivity : AppCompatActivity() {
 

@@ -49,7 +49,7 @@ class ProfileViewModel(private val repository: ProfileRepository) : ViewModel() 
 
     fun getUserOrganisations(token: String, username: String) {
         viewModelScope.launch {
-            repository.getUserOrgs(token, username).let { organisations ->
+            repository.getUserOrganisations(token, username).let { organisations ->
                 if (organisations.isSuccessful) {
                     _state.update {
                         it.copy(UserOrganisations = Resource.Success(organisations.body()!!))
@@ -162,11 +162,11 @@ class ProfileViewModel(private val repository: ProfileRepository) : ViewModel() 
                     if (response.isSuccessful) {
                         var headers = response.headers()
                         var body = response.body()
-                        
+
                     }
                 }
             } catch (e: Exception) {
-
+                Log.d("ahi3646", "getUserStarredReposCount: ${e.message} '")
             }
         }
     }
@@ -273,7 +273,7 @@ class ProfileViewModel(private val repository: ProfileRepository) : ViewModel() 
                 repository.unfollowUser(token, username).let { response ->
                     if (response.code() == 204) {
 
-                        trySend(true)
+                        trySend(false)
 
                         _state.update {
                             it.copy(
@@ -293,26 +293,90 @@ class ProfileViewModel(private val repository: ProfileRepository) : ViewModel() 
     }
 
     fun followUser(token: String, username: String): Flow<Boolean> = callbackFlow {
-        try {
-            repository.followUser(token, username).let { res ->
-                if (res.code() == 204) {
+        viewModelScope.launch {
+            try {
+                repository.followUser(token, username).let { res ->
+                    if (res.code() == 204) {
 
-                    trySend(true)
+                        trySend(true)
 
-                    _state.update {
-                        it.copy(
-                            isFollowing = true,
-                        )
+                        _state.update {
+                            it.copy(
+                                isFollowing = true,
+                            )
+                        }
                     }
                 }
+            } catch (e: Exception) {
+                Log.d("ahi3646", "followUser:  ${e.message}")
             }
-        } catch (e: Exception) {
-            Log.d("ahi3646", "followUser:  ${e.message}")
         }
         awaitClose {
             channel.close()
             Log.d("callback_ahi", "callback stop : ")
         }
+    }
+
+    fun isUserBlocked(token: String, username: String) {
+        viewModelScope.launch {
+            try {
+                repository.isUserBlocked(token, username).let { response ->
+                    if (response.code() == 204) {
+                        _state.update {
+                            it.copy(isUserBlocked = true)
+                        }
+                    }
+                }
+            } catch (e: Exception) {
+                Log.d("ahi3646", "followUser:  ${e.message}")
+            }
+        }
+    }
+
+    fun blockUser(token: String, username: String): Flow<Boolean> = callbackFlow {
+        viewModelScope.launch {
+            try {
+                repository.blockUser(token, username).let { response ->
+                    trySend(true)
+
+                    if (response.code() == 204) {
+                        _state.update {
+                            it.copy(isUserBlocked = true)
+                        }
+                    }
+                }
+            } catch (e: Exception) {
+                Log.d("ahi3646", "blockUser: ${e.message} ")
+            }
+        }
+        awaitClose {
+            channel.close()
+            Log.d("callback_ahi", "callback stop : ")
+        }
+
+    }
+
+    fun unblockUser(token: String, username: String): Flow<Boolean> = callbackFlow {
+        viewModelScope.launch {
+            try {
+                repository.unblockUser(token, username).let { response ->
+                    trySend(false)
+
+                    if (response.code() == 204) {
+                        _state.update {
+                            it.copy(isUserBlocked = false)
+                        }
+                    }
+                }
+            } catch (e: Exception) {
+                Log.d("ahi3646", "blockUser: ${e.message} ")
+            }
+        }
+        awaitClose {
+            channel.close()
+            Log.d("callback_ahi", "callback stop : ")
+        }
+
     }
 
 }
@@ -328,6 +392,7 @@ data class ProfileScreenState(
     val UserFollowers: Resource<FollowersModel> = Resource.Loading(),
     val UserGists: Resource<GistModel> = Resource.Loading(),
     var isFollowing: Boolean = false,
+    var isUserBlocked: Boolean = false
 )
 
 sealed interface UserOverviewScreen {

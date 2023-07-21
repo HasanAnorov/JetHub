@@ -11,7 +11,6 @@ import com.hasan.jetfasthub.utility.Resource
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
-import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import java.lang.Exception
 
@@ -21,17 +20,20 @@ class SearchViewModel(private val repository: SearchRepository) : ViewModel() {
     val state = _state.asStateFlow()
 
     fun searchRepositories(token: String, query: String, page: Long) {
+        _state.update {
+            it.copy(Repositories = ResourceWithInitial.Loading())
+        }
         viewModelScope.launch {
             try {
                 repository.searchRepositories(token, query, page).let { repositoryModel ->
                     if (repositoryModel.isSuccessful) {
                         _state.update {
-                            it.copy(Repositories = Resource.Success(repositoryModel.body()!!))
+                            it.copy(Repositories = ResourceWithInitial.Success(repositoryModel.body()!!))
                         }
                     } else {
                         _state.update {
                             it.copy(
-                                Repositories = Resource.Failure(
+                                Repositories = ResourceWithInitial.Failure(
                                     repositoryModel.errorBody().toString()
                                 )
                             )
@@ -40,68 +42,85 @@ class SearchViewModel(private val repository: SearchRepository) : ViewModel() {
                 }
             } catch (e: Exception) {
                 _state.update {
-                    it.copy(Repositories = Resource.Failure(e.message.toString()))
+                    it.copy(Repositories = ResourceWithInitial.Failure(e.message.toString()))
                 }
             }
         }
     }
 
     fun searchUsers(token: String, query: String, page: Long) {
+        _state.update {
+            it.copy(Users = ResourceWithInitial.Loading())
+        }
         viewModelScope.launch {
             try {
                 repository.searchUsers(token, query, page).let { userModel ->
                     if (userModel.isSuccessful) {
                         _state.update {
-                            it.copy(Users = Resource.Success(userModel.body()!!))
+                            it.copy(Users = ResourceWithInitial.Success(userModel.body()!!))
                         }
                     } else {
                         _state.update {
-                            it.copy(Users = Resource.Failure(userModel.errorBody().toString()))
+                            it.copy(
+                                Users = ResourceWithInitial.Failure(
+                                    userModel.errorBody().toString()
+                                )
+                            )
                         }
                     }
                 }
             } catch (e: Exception) {
                 _state.update {
-                    it.copy(Users = Resource.Failure(e.message.toString()))
+                    it.copy(Users = ResourceWithInitial.Failure(e.message.toString()))
                 }
             }
         }
     }
 
     fun searchIssues(token: String, query: String, page: Long) {
+        _state.update {
+            it.copy(Issues = ResourceWithInitial.Loading())
+        }
         viewModelScope.launch {
             try {
                 repository.searchIssues(token, query, page).let { issuesModel ->
                     if (issuesModel.isSuccessful) {
                         _state.update {
-                            it.copy(Issues = Resource.Success(issuesModel.body()!!))
+                            it.copy(Issues = ResourceWithInitial.Success(issuesModel.body()!!))
                         }
                     } else {
                         _state.update {
-                            it.copy(Issues = Resource.Failure(issuesModel.errorBody().toString()))
+                            it.copy(
+                                Issues = ResourceWithInitial.Failure(
+                                    issuesModel.errorBody().toString()
+                                )
+                            )
                         }
                     }
                 }
             } catch (e: Exception) {
                 _state.update {
-                    it.copy(Issues = Resource.Failure(e.message.toString()))
+                    it.copy(Issues = ResourceWithInitial.Failure(e.message.toString()))
                 }
             }
         }
     }
 
     fun searchCodes(token: String, query: String, page: Long) {
+        _state.update {
+            it.copy(Codes = ResourceWithInitial.Loading())
+        }
         viewModelScope.launch {
             try {
                 repository.searchCodes(token, query, page).let { codeModelResponse ->
                     if (codeModelResponse.isSuccessful) {
                         _state.update {
-                            it.copy(Codes = Resource.Success(codeModelResponse.body()!!))
+                            it.copy(Codes = ResourceWithInitial.Success(codeModelResponse.body()!!))
                         }
                     } else {
                         _state.update {
                             it.copy(
-                                Codes = Resource.Failure(
+                                Codes = ResourceWithInitial.Failure(
                                     codeModelResponse.errorBody().toString()
                                 )
                             )
@@ -110,7 +129,7 @@ class SearchViewModel(private val repository: SearchRepository) : ViewModel() {
                 }
             } catch (e: Exception) {
                 _state.update {
-                    it.copy(Codes = Resource.Failure(e.message.toString()))
+                    it.copy(Codes = ResourceWithInitial.Failure(e.message.toString()))
                 }
             }
         }
@@ -119,8 +138,19 @@ class SearchViewModel(private val repository: SearchRepository) : ViewModel() {
 }
 
 data class SearchScreenState(
-    val Repositories: Resource<RepositoryModel> = Resource.Loading(),
-    val Users: Resource<UserModel> = Resource.Loading(),
-    val Issues: Resource<IssuesModel> = Resource.Loading(),
-    val Codes: Resource<CodeModel> = Resource.Loading()
+    val Repositories: ResourceWithInitial<RepositoryModel> = ResourceWithInitial.Initial(),
+    val Users: ResourceWithInitial<UserModel> = ResourceWithInitial.Initial(),
+    val Issues: ResourceWithInitial<IssuesModel> = ResourceWithInitial.Initial(),
+    val Codes: ResourceWithInitial<CodeModel> = ResourceWithInitial.Initial()
 )
+
+sealed class ResourceWithInitial<T>(
+    val data: T? = null,
+    val errorMessage: String? = null
+) {
+    class Initial<T> : ResourceWithInitial<T>()
+    class Loading<T> : ResourceWithInitial<T>()
+    class Success<T>(data:T) : ResourceWithInitial<T>(data)
+    class Failure<T>(errorMessage: String?) : ResourceWithInitial<T>(null,errorMessage)
+
+}

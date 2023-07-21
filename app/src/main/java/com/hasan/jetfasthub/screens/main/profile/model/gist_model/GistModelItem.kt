@@ -7,7 +7,7 @@ data class GistModelItem(
     val comments_url: String,
     val commits_url: String,
     val created_at: String,
-    val description: String,
+    val description: String?,
     val files: Files,
     val forks_url: String,
     val git_pull_url: String,
