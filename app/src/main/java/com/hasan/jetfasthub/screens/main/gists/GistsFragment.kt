@@ -1,7 +1,6 @@
 package com.hasan.jetfasthub.screens.main.gists
 
 import android.os.Bundle
-import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -61,7 +60,7 @@ import com.hasan.jetfasthub.screens.main.gists.model.StarredGistModel
 import com.hasan.jetfasthub.screens.main.gists.model.StarredGistModelItem
 import com.hasan.jetfasthub.screens.main.gists.public_gist_model.PublicGistsModel
 import com.hasan.jetfasthub.screens.main.gists.public_gist_model.PublicGistsModelItem
-import com.hasan.jetfasthub.screens.main.profile.model.gist_model.GistModel
+import com.hasan.jetfasthub.screens.main.profile.model.gist_model.GistsModel
 import com.hasan.jetfasthub.screens.main.profile.model.gist_model.GistModelItem
 import com.hasan.jetfasthub.ui.theme.JetFastHubTheme
 import com.hasan.jetfasthub.utility.ParseDateFormat
@@ -81,7 +80,7 @@ class GistsFragment : Fragment() {
     ): View {
 
         val token = PreferenceHelper.getToken(requireContext())
-        val username = "HasanAnorov"
+        val username = arguments?.getString("gist_data") ?: ""
 
         gistsViewModel.getUserGists(token = token, username = username, 1)
         gistsViewModel.getStarredGists(token = token, 1)
@@ -94,10 +93,18 @@ class GistsFragment : Fragment() {
                     MainContent(
                         state = state,
                         onNavigate = { dest, data ->
-                            if (dest == -1) {
-                                findNavController().popBackStack()
+                            when (dest) {
+                                -1 -> {
+                                    findNavController().popBackStack()
+                                }
+
+                                R.id.action_gistsFragment_to_gistFragment -> {
+                                    val bundle = Bundle()
+                                    bundle.putString("gist_id", data)
+                                    bundle.putString("gist_owner", username)
+                                    findNavController().navigate(dest, bundle)
+                                }
                             }
-                            Log.d("ahi3646", "onCreateView: $dest , $data ")
                         }
                     )
                 }
@@ -134,23 +141,32 @@ private fun TabScreen(
         modifier = Modifier
             .padding(contentPaddingValues)
             .fillMaxWidth()
+            .background(MaterialTheme.colorScheme.surface)
     ) {
         TabRow(
             selectedTabIndex = tabIndex,
-            backgroundColor = Color.White,
-            contentColor = Color.Blue
+            backgroundColor = Color.Transparent,
+            contentColor = MaterialTheme.colorScheme.onPrimaryContainer
         ) {
             tabs.forEachIndexed { index, title ->
                 Tab(
                     text = {
                         if (tabIndex == index) {
-                            Text(title, color = Color.Blue)
+                            Text(
+                                title,
+                                color = MaterialTheme.colorScheme.onPrimaryContainer
+                            )
                         } else {
-                            Text(title, color = Color.Black)
+                            Text(
+                                title,
+                                color = MaterialTheme.colorScheme.outline
+                            )
                         }
                     },
                     selected = tabIndex == index,
                     onClick = { tabIndex = index },
+                    selectedContentColor = MaterialTheme.colorScheme.onPrimaryContainer,
+                    unselectedContentColor = MaterialTheme.colorScheme.inverseOnSurface
                 )
             }
         }
@@ -163,17 +179,23 @@ private fun TabScreen(
 }
 
 @Composable
-private fun MyGists(state: Resource<GistModel>, onRecyclerItemClick: (Int, String?) -> Unit) {
+private fun MyGists(
+    state: Resource<GistsModel>,
+    onRecyclerItemClick: (Int, String?) -> Unit
+) {
     when (state) {
         is Resource.Loading -> {
             Column(
                 modifier = Modifier
                     .fillMaxSize()
-                    .background(Color.White),
+                    .background(MaterialTheme.colorScheme.surfaceVariant),
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.Center
             ) {
-                Text(text = "Loading ...")
+                Text(
+                    text = "Loading ...",
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
             }
         }
 
@@ -182,13 +204,13 @@ private fun MyGists(state: Resource<GistModel>, onRecyclerItemClick: (Int, Strin
                 LazyColumn(
                     modifier = Modifier
                         .fillMaxSize()
-                        .background(Color.White),
+                        .background(MaterialTheme.colorScheme.surfaceVariant),
                     horizontalAlignment = Alignment.CenterHorizontally,
                     verticalArrangement = Arrangement.Top
                 ) {
                     itemsIndexed(state.data) { index, gist ->
                         GistItemCard(
-                            gist, onGistItemClick = onRecyclerItemClick
+                            gistModelItem = gist, onGistItemClick = onRecyclerItemClick
                         )
                         if (index < state.data.lastIndex) {
                             Divider(
@@ -202,13 +224,13 @@ private fun MyGists(state: Resource<GistModel>, onRecyclerItemClick: (Int, Strin
                 Column(
                     modifier = Modifier
                         .fillMaxSize()
-                        .background(Color.White),
+                        .background(MaterialTheme.colorScheme.surfaceVariant),
                     horizontalAlignment = Alignment.CenterHorizontally,
                     verticalArrangement = Arrangement.Center
                 ) {
-                    Text(
-                        text = "No news",
-                        textAlign = TextAlign.Center,
+                    androidx.compose.material.Text(
+                        text = "No gists!",
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
             }
@@ -218,12 +240,14 @@ private fun MyGists(state: Resource<GistModel>, onRecyclerItemClick: (Int, Strin
             Column(
                 modifier = Modifier
                     .fillMaxSize()
-                    .background(Color.White),
+                    .background(MaterialTheme.colorScheme.surfaceVariant),
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.Center
             ) {
-                Text(text = "Something went wrong !")
-                Log.d("ahi3646", "Unread: ${state.errorMessage}")
+                Text(
+                    text = "Can't load data!",
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
             }
         }
     }
@@ -233,26 +257,41 @@ private fun MyGists(state: Resource<GistModel>, onRecyclerItemClick: (Int, Strin
 private fun GistItemCard(
     gistModelItem: GistModelItem, onGistItemClick: (Int, String?) -> Unit
 ) {
+
+    val fileValues = gistModelItem.files.values
+
+    val fileName = if (gistModelItem.description == "" || gistModelItem.description == null) {
+        fileValues.elementAt(0).filename
+    } else {
+        gistModelItem.description
+    }
+
     Card(
         modifier = Modifier
             .fillMaxWidth()
-            .clickable(onClick = {
-                onGistItemClick(0, gistModelItem.url)
-            })
-            .padding(4.dp), elevation = 0.dp, backgroundColor = Color.White
+            .clickable(
+                onClick = {
+                    onGistItemClick(
+                        R.id.action_gistsFragment_to_gistFragment,
+                        gistModelItem.id
+                    )
+                }
+            )
+            .padding(4.dp),
+        elevation = 0.dp,
+        backgroundColor = MaterialTheme.colorScheme.surfaceVariant
     ) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(6.dp)
-
         ) {
 
             Text(
-                text = "gistModelItem.files.hello_world_rb.filename",
+                text = fileName,
                 modifier = Modifier.padding(0.dp, 0.dp, 12.dp, 0.dp),
-                color = Color.Black,
-                fontSize = 18.sp,
+                color = MaterialTheme.colorScheme.onPrimaryContainer,
+                fontSize = 16.sp,
                 maxLines = 2,
                 overflow = TextOverflow.Ellipsis
             )
@@ -261,7 +300,7 @@ private fun GistItemCard(
 
             Text(
                 text = ParseDateFormat.getTimeAgo(gistModelItem.updated_at).toString(),
-                color = Color.Black,
+                color = MaterialTheme.colorScheme.onPrimaryContainer,
                 modifier = Modifier.padding(start = 2.dp)
             )
 
@@ -270,17 +309,23 @@ private fun GistItemCard(
 }
 
 @Composable
-private fun Starred(state: Resource<StarredGistModel>, onRecyclerItemClick: (Int, String?) -> Unit) {
+private fun Starred(
+    state: Resource<StarredGistModel>,
+    onRecyclerItemClick: (Int, String?) -> Unit
+) {
     when (state) {
         is Resource.Loading -> {
             Column(
                 modifier = Modifier
                     .fillMaxSize()
-                    .background(Color.White),
+                    .background(MaterialTheme.colorScheme.surfaceVariant),
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.Center
             ) {
-                Text(text = "Loading ...")
+                Text(
+                    text = "Loading ...",
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
             }
         }
 
@@ -289,7 +334,7 @@ private fun Starred(state: Resource<StarredGistModel>, onRecyclerItemClick: (Int
                 LazyColumn(
                     modifier = Modifier
                         .fillMaxSize()
-                        .background(Color.White),
+                        .background(MaterialTheme.colorScheme.surfaceVariant),
                     horizontalAlignment = Alignment.CenterHorizontally,
                     verticalArrangement = Arrangement.Top
                 ) {
@@ -309,12 +354,12 @@ private fun Starred(state: Resource<StarredGistModel>, onRecyclerItemClick: (Int
                 Column(
                     modifier = Modifier
                         .fillMaxSize()
-                        .background(Color.White),
+                        .background(MaterialTheme.colorScheme.surfaceVariant),
                     horizontalAlignment = Alignment.CenterHorizontally,
                     verticalArrangement = Arrangement.Center
                 ) {
                     Text(
-                        text = "No news",
+                        text = "No gists",
                         textAlign = TextAlign.Center,
                     )
                 }
@@ -325,12 +370,14 @@ private fun Starred(state: Resource<StarredGistModel>, onRecyclerItemClick: (Int
             Column(
                 modifier = Modifier
                     .fillMaxSize()
-                    .background(Color.White),
+                    .background(MaterialTheme.colorScheme.surfaceVariant),
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.Center
             ) {
-                Text(text = "Something went wrong !")
-                Log.d("ahi3646", "Unread: ${state.errorMessage}")
+                Text(
+                    text = "Can't load data!",
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
             }
         }
     }
@@ -344,9 +391,14 @@ private fun StarredGistsItem(
         modifier = Modifier
             .fillMaxWidth()
             .clickable(onClick = {
-                onItemClicked(0, gist.description)
+                onItemClicked(
+                    R.id.action_gistsFragment_to_gistFragment,
+                    gist.id
+                )
             })
-            .padding(4.dp), elevation = 0.dp, backgroundColor = Color.White
+            .padding(4.dp),
+        elevation = 0.dp,
+        backgroundColor = MaterialTheme.colorScheme.surfaceVariant
     ) {
         Row(
             modifier = Modifier
@@ -371,12 +423,20 @@ private fun StarredGistsItem(
 
             Spacer(modifier = Modifier.width(16.dp))
 
+            val fileValues = gist.files.values
+
+            val fileName = if (gist.description == "" || gist.description == null) {
+                fileValues.elementAt(0).filename
+            } else {
+                gist.description
+            }
+
             Column(modifier = Modifier.align(Alignment.CenterVertically)) {
 
-                androidx.compose.material.Text(
-                    text = gist.description,
+                Text(
+                    text = fileName,
                     modifier = Modifier.padding(0.dp, 0.dp, 12.dp, 0.dp),
-                    color = Color.Black,
+                    color = MaterialTheme.colorScheme.onPrimaryContainer,
                     style = androidx.compose.material.MaterialTheme.typography.subtitle1,
                     maxLines = 2,
                     overflow = TextOverflow.Ellipsis
@@ -391,12 +451,13 @@ private fun StarredGistsItem(
 
                     Icon(
                         painter = painterResource(id = R.drawable.ic_time_small),
-                        contentDescription = "time icon"
+                        contentDescription = "time icon",
+                        tint = MaterialTheme.colorScheme.onSurface
                     )
 
-                    androidx.compose.material.Text(
+                    Text(
                         text = ParseDateFormat.getTimeAgo(gist.updated_at).toString(),
-                        color = Color.Black,
+                        color = MaterialTheme.colorScheme.onPrimaryContainer,
                         modifier = Modifier.padding(start = 2.dp)
                     )
 
@@ -407,17 +468,23 @@ private fun StarredGistsItem(
 }
 
 @Composable
-private fun PublicGists(state: Resource<PublicGistsModel>, onRecyclerItemClick: (Int, String?) -> Unit) {
+private fun PublicGists(
+    state: Resource<PublicGistsModel>,
+    onRecyclerItemClick: (Int, String?) -> Unit
+) {
     when (state) {
         is Resource.Loading -> {
             Column(
                 modifier = Modifier
                     .fillMaxSize()
-                    .background(Color.White),
+                    .background(MaterialTheme.colorScheme.surfaceVariant),
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.Center
             ) {
-                Text(text = "Loading ...")
+                Text(
+                    text = "Loading ...",
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
             }
         }
 
@@ -426,7 +493,7 @@ private fun PublicGists(state: Resource<PublicGistsModel>, onRecyclerItemClick: 
                 LazyColumn(
                     modifier = Modifier
                         .fillMaxSize()
-                        .background(Color.White),
+                        .background(MaterialTheme.colorScheme.surfaceVariant),
                     horizontalAlignment = Alignment.CenterHorizontally,
                     verticalArrangement = Arrangement.Top
                 ) {
@@ -446,7 +513,7 @@ private fun PublicGists(state: Resource<PublicGistsModel>, onRecyclerItemClick: 
                 Column(
                     modifier = Modifier
                         .fillMaxSize()
-                        .background(Color.White),
+                        .background(MaterialTheme.colorScheme.surfaceVariant),
                     horizontalAlignment = Alignment.CenterHorizontally,
                     verticalArrangement = Arrangement.Center
                 ) {
@@ -462,12 +529,14 @@ private fun PublicGists(state: Resource<PublicGistsModel>, onRecyclerItemClick: 
             Column(
                 modifier = Modifier
                     .fillMaxSize()
-                    .background(Color.White),
+                    .background(MaterialTheme.colorScheme.surfaceVariant),
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.Center
             ) {
-                Text(text = "Something went wrong !")
-                Log.d("ahi3646", "Unread: ${state.errorMessage}")
+                Text(
+                    text = "Can't load data!",
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
             }
         }
     }
@@ -480,10 +549,17 @@ private fun PublicGistsItem(
     Card(
         modifier = Modifier
             .fillMaxWidth()
-            .clickable(onClick = {
-                onItemClicked(0, gist.description)
-            })
-            .padding(4.dp), elevation = 0.dp, backgroundColor = Color.White
+            .clickable(
+                onClick = {
+                    onItemClicked(
+                        R.id.action_gistsFragment_to_gistFragment,
+                        gist.id
+                    )
+                }
+            )
+            .padding(4.dp),
+        elevation = 0.dp,
+        backgroundColor = MaterialTheme.colorScheme.surfaceVariant
     ) {
         Row(
             modifier = Modifier
@@ -509,18 +585,18 @@ private fun PublicGistsItem(
             Spacer(modifier = Modifier.width(16.dp))
 
             Column(modifier = Modifier.align(Alignment.CenterVertically)) {
+                val file = gist.files.values
+                val fileName = file.elementAt(0).filename
 
                 Text(
                     text = buildAnnotatedString {
                         withStyle(style = SpanStyle(fontWeight = FontWeight.Bold)) {
                             append(gist.owner.login + "/ ")
                         }
-                        if (gist.files.hello_world_rb != null) {
-                            append(gist.files.hello_world_rb.filename)
-                        }
+                        append(fileName)
                     },
                     modifier = Modifier.padding(0.dp, 0.dp, 12.dp, 0.dp),
-                    color = Color.Black,
+                    color = MaterialTheme.colorScheme.onPrimaryContainer,
                     style = androidx.compose.material.MaterialTheme.typography.subtitle1,
                     maxLines = 2,
                     overflow = TextOverflow.Ellipsis
@@ -535,12 +611,13 @@ private fun PublicGistsItem(
 
                     Icon(
                         painter = painterResource(id = R.drawable.ic_time_small),
-                        contentDescription = "time icon"
+                        contentDescription = "time icon",
+                        tint = MaterialTheme.colorScheme.onSurface
                     )
 
-                    androidx.compose.material.Text(
+                    Text(
                         text = ParseDateFormat.getTimeAgo(gist.updated_at).toString(),
-                        color = Color.Black,
+                        color = MaterialTheme.colorScheme.onPrimaryContainer,
                         modifier = Modifier.padding(start = 2.dp)
                     )
 
@@ -564,9 +641,8 @@ private fun TopAppBarContent(
             modifier = Modifier
                 .padding(top = 4.dp, bottom = 4.dp)
                 .fillMaxWidth()
-                .background(Color.White),
 
-            ) {
+        ) {
             IconButton(onClick = {
                 onBackPressed(-1, null)
             }) {
@@ -577,7 +653,7 @@ private fun TopAppBarContent(
             }
 
             Text(
-                color = Color.Black,
+                color = MaterialTheme.colorScheme.onSurface,
                 modifier = Modifier
                     .weight(1F)
                     .padding(start = 10.dp, end = 10.dp),

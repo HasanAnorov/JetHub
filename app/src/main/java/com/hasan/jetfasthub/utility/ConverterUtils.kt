@@ -1,8 +1,5 @@
 package com.hasan.jetfasthub.utility
 
-import android.webkit.MimeTypeMap
-import java.util.Locale
-
 object FileSizeCalculator {
 
     fun humanReadableByteCountBin(bytes: Long) = when {

@@ -1,5 +1,6 @@
 package com.hasan.jetfasthub.screens.main.home
 
+import android.content.Context
 import android.net.Uri
 import android.os.Bundle
 import android.util.Log
@@ -7,10 +8,9 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import androidx.activity.OnBackPressedCallback
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -25,49 +25,35 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.BottomNavigationItem
 import androidx.compose.material.BottomSheetScaffold
 import androidx.compose.material.BottomSheetValue
 import androidx.compose.material.Card
+import androidx.compose.material.DrawerValue
 import androidx.compose.material.ExperimentalMaterialApi
 import androidx.compose.material.Scaffold
 import androidx.compose.material.ScaffoldState
 import androidx.compose.material.Surface
-import androidx.compose.material.TabRow
 import androidx.compose.material.Text
-import androidx.compose.material.TopAppBar
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.outlined.Notifications
-import androidx.compose.material.icons.rounded.Menu
-import androidx.compose.material.icons.rounded.Search
+import androidx.compose.material.rememberBottomSheetScaffoldState
 import androidx.compose.material.rememberBottomSheetState
+import androidx.compose.material.rememberDrawerState
 import androidx.compose.material.rememberScaffoldState
 import androidx.compose.material3.BottomAppBar
 import androidx.compose.material3.Button
-import androidx.compose.material3.Divider
-import androidx.compose.material3.DrawerDefaults
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.ModalDrawerSheet
-import androidx.compose.material3.Tab
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableIntStateOf
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.ComposeView
 import androidx.compose.ui.res.painterResource
@@ -79,23 +65,20 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
+import androidx.core.os.bundleOf
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.flowWithLifecycle
 import androidx.lifecycle.lifecycleScope
-import androidx.navigation.fragment.findNavController
+import androidx.navigation.findNavController
 import com.hasan.jetfasthub.R
 import com.hasan.jetfasthub.data.PreferenceHelper
 import com.hasan.jetfasthub.screens.main.home.received_events_model.ReceivedEventsModelItem
-import com.hasan.jetfasthub.screens.main.home.user_model.GitHubUser
 import com.hasan.jetfasthub.ui.theme.JetFastHubTheme
 import com.hasan.jetfasthub.utility.Constants.chooseFromEvents
 import com.hasan.jetfasthub.utility.ParseDateFormat
-import com.hasan.jetfasthub.utility.Resource
 import com.skydoves.landscapist.ImageOptions
 import com.skydoves.landscapist.glide.GlideImage
-import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.launch
@@ -106,38 +89,41 @@ class HomeFragment : Fragment() {
 
     private val homeViewModel: HomeViewModel by viewModel()
 
-    override fun onCreateView(
-        inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?
-    ): View {
+    override fun onAttach(context: Context) {
+        super.onAttach(context)
 
         val token = PreferenceHelper.getToken(requireContext())
 
         homeViewModel.getAuthenticatedUser(token)
-            .flowWithLifecycle(lifecycle, Lifecycle.State.STARTED).onEach { authenticatedUser ->
-                Log.d("ahi3646", "onCreateView onSave: ${authenticatedUser.login} ")
+            .flowWithLifecycle(lifecycle, Lifecycle.State.STARTED)
+            .onEach { authenticatedUser ->
                 PreferenceHelper.saveAuthenticatedUser(requireContext(), authenticatedUser.login)
 
                 homeViewModel.getUser(token, authenticatedUser.login)
                 homeViewModel.getReceivedEvents(token, authenticatedUser.login)
-            }.launchIn(lifecycleScope)
+            }
+            .launchIn(lifecycleScope)
+    }
+
+    override fun onCreateView(
+        inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?
+    ): View {
 
         return ComposeView(requireContext()).apply {
             setContent {
                 val state by homeViewModel.state.collectAsState()
 
-                val scaffoldState = rememberScaffoldState()
-                val scope = rememberCoroutineScope()
-                val showDrawerSheet by remember {
-                    mutableStateOf(false)
-                }
+                val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
+                val scaffoldState = rememberScaffoldState(drawerState = drawerState)
+                val drawerScope = rememberCoroutineScope()
 
                 activity?.onBackPressedDispatcher?.addCallback(
                     viewLifecycleOwner,
                     object : OnBackPressedCallback(true) {
                         override fun handleOnBackPressed() {
                             if (scaffoldState.drawerState.isOpen) {
-                                scope.launch {
-                                    scaffoldState.drawerState.close()
+                                drawerScope.launch {
+                                    drawerState.close()
                                 }
                             } else {
                                 isEnabled = false
@@ -152,21 +138,68 @@ class HomeFragment : Fragment() {
                         state = state,
                         onBottomBarItemSelected = homeViewModel::onBottomBarItemSelected,
                         onNavigate = { dest, data, extra ->
-                            if (dest == -1) {
-                                findNavController().popBackStack()
-                            } else {
-                                val bundle = Bundle()
-                                if (data != null) {
-                                    bundle.putString("home_data", data)
+                            when (dest) {
+
+                                -1 -> {
+                                    findNavController().popBackStack()
                                 }
-                                if (extra != null) {
-                                    bundle.putString("home_extra", extra)
+
+                                R.id.action_homeFragment_to_notificationsFragment -> {
+                                    findNavController().navigate(dest)
                                 }
-                                findNavController().navigate(dest, bundle)
+
+                                R.id.action_homeFragment_to_searchFragment -> {
+                                    findNavController().navigate(dest)
+                                }
+
+                                R.id.action_homeFragment_to_repositoryFragment -> {
+                                    val bundle = Bundle()
+                                    bundle.putString("repository_owner", data)
+                                    bundle.putString("repository_name", extra)
+                                    findNavController().navigate(dest, bundle)
+                                }
+
+                                R.id.action_homeFragment_to_profileFragment -> {
+                                    Log.d("ahi3646", "onCreateView: $data -- $extra ")
+                                    val bundle = Bundle()
+                                    bundle.putString("username", data)
+                                    bundle.putString("start_index", extra)
+                                    findNavController().navigate(dest, bundle)
+                                }
+
+                                R.id.action_homeFragment_to_pinnedFragment -> {
+                                    findNavController().navigate(dest)
+                                }
+
+                                R.id.action_homeFragment_to_gistsFragment -> {
+                                    val bundle = bundleOf("gist_data" to data)
+                                    findNavController().navigate(dest, bundle)
+                                }
+
+                                R.id.action_homeFragment_to_faqFragment -> {
+                                    findNavController().navigate(dest)
+                                }
+
+                                R.id.action_homeFragment_to_settingsFragment -> {
+                                    findNavController().navigate(dest)
+                                }
+
+                                R.id.action_homeFragment_to_aboutFragment -> {
+                                    findNavController().navigate(dest)
+                                }
+
                             }
                         },
-                        scaffoldState,
-                        scope
+                        scaffoldState = scaffoldState,
+                        onNavigationClick = {
+                            drawerScope.launch {
+                                if (drawerState.isClosed) {
+                                    drawerState.open()
+                                } else {
+                                    drawerState.close()
+                                }
+                            }
+                        }
                     )
                 }
             }
@@ -181,10 +214,11 @@ private fun MainContent(
     onBottomBarItemSelected: (AppScreens) -> Unit,
     onNavigate: (Int, String?, String?) -> Unit,
     scaffoldState: ScaffoldState,
-    scope: CoroutineScope
+    onNavigationClick: () -> Unit
 ) {
+    val sheetScope = rememberCoroutineScope()
     val sheetState = rememberBottomSheetState(initialValue = BottomSheetValue.Collapsed)
-    val sheetScaffoldState = androidx.compose.material.rememberBottomSheetScaffoldState(
+    val sheetScaffoldState = rememberBottomSheetScaffoldState(
         bottomSheetState = sheetState
     )
 
@@ -196,50 +230,73 @@ private fun MainContent(
                 horizontalAlignment = Alignment.Start,
                 verticalArrangement = Arrangement.Center
             ) {
-                Text(text = "Logout", style = MaterialTheme.typography.titleLarge)
+                Text(
+                    text = "Logout",
+                    style = MaterialTheme.typography.titleLarge,
+                    color = MaterialTheme.colorScheme.onPrimaryContainer
+                )
                 Spacer(modifier = Modifier.height(12.dp))
-                Text(text = "Are you sure ?", style = MaterialTheme.typography.titleMedium)
+                Text(
+                    text = "Are you sure ?",
+                    style = MaterialTheme.typography.titleMedium,
+                    color = MaterialTheme.colorScheme.onPrimaryContainer
+                )
                 Row(
                     Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.End,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Button(onClick = { scope.launch { sheetState.collapse() } }) {
+                    Button(onClick = { sheetScope.launch { sheetState.collapse() } }) {
                         Text(text = "Ok")
                     }
                     Spacer(modifier = Modifier.width(12.dp))
-                    Button(onClick = { scope.launch { sheetState.collapse() } }) {
+                    Button(onClick = { sheetScope.launch { sheetState.collapse() } }) {
                         Text(text = "No")
                     }
                 }
             }
         },
         sheetPeekHeight = 0.dp,
-        sheetShape = RoundedCornerShape(topStart = 20.dp, topEnd = 20.dp)
+        sheetShape = RoundedCornerShape(topStart = 20.dp, topEnd = 20.dp),
+        sheetBackgroundColor = MaterialTheme.colorScheme.inverseOnSurface,
+        modifier = Modifier.pointerInput(Unit) {
+            detectTapGestures(
+                onTap = {
+                    sheetScope.launch {
+                        if (sheetState.isExpanded) {
+                            sheetState.collapse()
+                        }
+                    }
+                }
+            )
+        }
     ) { paddingValues ->
 
         Scaffold(
-            modifier = Modifier.padding(paddingValues),
-            scaffoldState = scaffoldState,
-            topBar = {
-                TopAppBar(
-                    backgroundColor = Color.White,
-                    content = {
-                        TopAppBarContent(scaffoldState, scope, onNavigate)
-                    },
-                )
-            },
-            drawerContent = {
-                DrawerContent(
-                    user = state.user,
-                    closeDrawer = {
-                        scope.launch {
-                            scaffoldState.drawerState.close()
+            modifier = Modifier
+                .padding(paddingValues)
+                .pointerInput(Unit) {
+                    detectTapGestures(
+                        onTap = {
+                            if (sheetState.isExpanded) {
+                                sheetScope.launch {
+                                    sheetState.collapse()
+                                }
+                            }
                         }
-                    },
+                    )
+                },
+            scaffoldState = scaffoldState,
+            topBar = { AppBar(onNavigationClick, onNavigate) },
+            drawerGesturesEnabled = scaffoldState.drawerState.isOpen,
+            drawerContent = {
+                DrawerHeader(user = state.user)
+                DrawerBody(
+                    closeDrawer = onNavigationClick,
+                    username = state.user.data?.login ?: "",
                     onLogout = {
-                        scope.launch {
-                            scaffoldState.drawerState.close()
+                        onNavigationClick()
+                        sheetScope.launch {
                             if (sheetState.isCollapsed) {
                                 sheetState.expand()
                             } else {
@@ -276,72 +333,28 @@ private fun MainContent(
 }
 
 @Composable
-private fun TopAppBarContent(
-    state: ScaffoldState,
-    scope: CoroutineScope,
-    onToolbarItemCLick: (Int, String?, String?) -> Unit
-) {
-    Row(
-        modifier = Modifier.fillMaxSize(),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.SpaceBetween
-    ) {
-        IconButton(onClick = {
-            scope.launch {
-                state.drawerState.apply {
-                    if (isClosed) open() else close()
-                }
-            }
-            Log.d("ahi3646", "TopAppBarContent:${state.drawerState.currentValue} ")
-        }) {
-            Icon(Icons.Rounded.Menu, contentDescription = "Localized description")
-        }
-
-        Text(
-            color = Color.Black,
-            modifier = Modifier
-                .weight(1F)
-                .padding(start = 10.dp, end = 10.dp),
-            text = "JetHub",
-            style = MaterialTheme.typography.titleLarge,
-        )
-
-        IconButton(onClick = {
-            onToolbarItemCLick(R.id.action_homeFragment_to_notificationsFragment, null, null)
-        }) {
-            Icon(Icons.Outlined.Notifications, contentDescription = "Notification")
-        }
-
-        IconButton(onClick = {
-            onToolbarItemCLick(R.id.action_homeFragment_to_searchFragment, null, null)
-        }) {
-            Icon(Icons.Rounded.Search, contentDescription = "Search")
-        }
-
-    }
-}
-
-//Bottom Nav stuffs
-@Composable
 fun BottomNav(
     modifier: Modifier,
     onBottomBarItemSelected: (AppScreens) -> Unit,
 ) {
-    Surface(elevation = 16.dp) {
+    Surface(
+        elevation = 16.dp,
+    ) {
         Row(
             modifier = modifier,
             horizontalArrangement = Arrangement.SpaceAround,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            BottomAppBar(containerColor = Color.White) {
+            BottomAppBar(contentColor = MaterialTheme.colorScheme.surface) {
                 BottomNavigationItem(
                     icon = {
                         Icon(
                             imageVector = ImageVector.vectorResource(id = R.drawable.ic_github),
-                            contentDescription = "Feed Screen"
+                            contentDescription = "Feed Screen",
+                            tint = MaterialTheme.colorScheme.onSurface
                         )
                     },
-                    label = { Text("Feeds") },
+                    label = { Text("Feeds", color = MaterialTheme.colorScheme.onSurface) },
                     selected = false,
                     onClick = { onBottomBarItemSelected(AppScreens.Feeds) },
                 )
@@ -350,10 +363,11 @@ fun BottomNav(
                     icon = {
                         Icon(
                             imageVector = ImageVector.vectorResource(id = R.drawable.ic_issues),
-                            contentDescription = "Issues Screen"
+                            contentDescription = "Issues Screen",
+                            tint = MaterialTheme.colorScheme.onSurface
                         )
                     },
-                    label = { Text("Issues") },
+                    label = { Text("Issues", color = MaterialTheme.colorScheme.onSurface) },
                     selected = false,
                     onClick = { onBottomBarItemSelected(AppScreens.Issues) },
                 )
@@ -362,10 +376,11 @@ fun BottomNav(
                     icon = {
                         Icon(
                             imageVector = ImageVector.vectorResource(id = R.drawable.ic_pull_requests),
-                            contentDescription = "PullRequest Screen"
+                            contentDescription = "PullRequest Screen",
+                            tint = MaterialTheme.colorScheme.onSurface
                         )
                     },
-                    label = { Text("Pull Requests") },
+                    label = { Text("Pull Requests", color = MaterialTheme.colorScheme.onSurface) },
                     selected = false,
                     onClick = { onBottomBarItemSelected(AppScreens.PullRequests) },
                 )
@@ -386,25 +401,38 @@ fun FeedsScreen(
             Column(
                 modifier = Modifier
                     .fillMaxSize()
-                    .background(Color.White),
+                    .background(MaterialTheme.colorScheme.surfaceVariant),
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.Center
             ) {
-                Text(text = "Loading ...")
+                Text(text = "Loading ...", color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
         }
 
         is ReceivedEventsState.Success -> {
-            LazyColumn(
-                modifier = Modifier
-                    .padding(contentPaddingValues)
-                    .fillMaxSize()
-                    .background(Color.White),
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.Center
-            ) {
-                items(receivedEventsState.events) { eventItem ->
-                    ItemEventCard(eventItem, onNavigate)
+            val events = receivedEventsState.events
+            if (events.isNotEmpty()) {
+                LazyColumn(
+                    modifier = Modifier
+                        .padding(contentPaddingValues)
+                        .fillMaxSize()
+                        .background(MaterialTheme.colorScheme.surfaceVariant),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.Center
+                ) {
+                    items(events) { eventItem ->
+                        ItemEventCard(eventItem, onNavigate)
+                    }
+                }
+            } else {
+                Column(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .background(MaterialTheme.colorScheme.surfaceVariant),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.Center
+                ) {
+                    Text(text = "No feeds")
                 }
             }
         }
@@ -413,7 +441,7 @@ fun FeedsScreen(
             Column(
                 modifier = Modifier
                     .fillMaxSize()
-                    .background(Color.White),
+                    .background(MaterialTheme.colorScheme.surfaceVariant),
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.Center
             ) {
@@ -427,24 +455,29 @@ fun FeedsScreen(
 @Composable
 fun IssuesScreen() {
     Column(
-        modifier = Modifier.fillMaxSize(),
+        modifier = Modifier
+            .fillMaxSize()
+            .background(MaterialTheme.colorScheme.surfaceVariant),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center
     ) {
-        Text(text = "Issues Screen")
+        Text(text = "Issues Screen", color = MaterialTheme.colorScheme.onSurfaceVariant)
     }
 }
 
 @Composable
 fun PullRequestScreen() {
     Column(
-        modifier = Modifier.fillMaxSize(),
+        modifier = Modifier
+            .fillMaxSize()
+            .background(MaterialTheme.colorScheme.surfaceVariant),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center
     ) {
-        Text(text = "PullScreen Screen")
+        Text(text = "Pull Requests Screen", color = MaterialTheme.colorScheme.onSurfaceVariant)
     }
 }
+
 
 @Composable
 private fun ItemEventCard(
@@ -484,13 +517,9 @@ private fun ItemEventCard(
                         )
                     }
                 }
-                Log.d(
-                    "ahi3646",
-                    "FeedsScreen: $uri  --- ${eventItem.actor.login}  -- ${eventItem.type} - $parentUsername "
-                )
             },
         elevation = 0.dp,
-        backgroundColor = Color.White
+        backgroundColor = MaterialTheme.colorScheme.surfaceVariant
     ) {
         Row(
             modifier = Modifier
@@ -508,6 +537,7 @@ private fun ItemEventCard(
                     .size(48.dp, 48.dp)
                     .clip(CircleShape)
                     .clickable {
+                        Log.d("ahi3646", "ItemEventCard: user login - ${eventItem.actor.login} ")
                         onNavigate(
                             R.id.action_homeFragment_to_profileFragment,
                             eventItem.actor.login,
@@ -540,11 +570,12 @@ private fun ItemEventCard(
                         append(eventItem.repo.name)
                     },
                     modifier = Modifier.padding(0.dp, 0.dp, 12.dp, 0.dp),
-                    color = Color.Black,
+                    color = MaterialTheme.colorScheme.onSecondaryContainer,
                     style = androidx.compose.material.MaterialTheme.typography.subtitle1,
                     maxLines = 2,
                     overflow = TextOverflow.Ellipsis
                 )
+
                 Spacer(modifier = Modifier.height(8.dp))
 
                 Row(
@@ -555,467 +586,21 @@ private fun ItemEventCard(
                         painter = painterResource(id = chooseFromEvents(eventItem.type).icon),
                         contentDescription = stringResource(
                             id = chooseFromEvents(eventItem.type).action
-                        )
+                        ),
+                        tint = MaterialTheme.colorScheme.onSecondaryContainer
                     )
 
                     Spacer(modifier = Modifier.width(10.dp))
                     Text(
                         text = ParseDateFormat.getTimeAgo(eventItem.created_at).toString(),
                         modifier = Modifier.padding(0.dp, 0.dp, 12.dp, 0.dp),
-                        color = Color.Black,
+                        color = MaterialTheme.colorScheme.onSecondaryContainer,
                         style = androidx.compose.material.MaterialTheme.typography.caption,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis
                     )
                 }
             }
-        }
-    }
-}
-
-@Composable
-private fun DrawerContent(
-    user: Resource<GitHubUser>,
-    closeDrawer: () -> Unit,
-    onLogout: () -> Unit,
-    onNavigate: (Int, String?, String?) -> Unit
-) {
-    ModalDrawerSheet() {
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.Start,
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(start = 16.dp, top = 16.dp, end = 16.dp, bottom = 4.dp)
-        ) {
-            GlideImage(
-                failure = { painterResource(id = R.drawable.baseline_account_circle_24) },
-                imageModel = { user.data?.avatar_url },
-                modifier = Modifier
-                    .size(64.dp)
-                    .clip(CircleShape)
-                    .border(2.dp, Color.Gray, CircleShape),
-                imageOptions = ImageOptions(
-                    contentDescription = "avatar picture",
-                    contentScale = ContentScale.Crop,
-                )
-            )
-
-            Column(
-                verticalArrangement = Arrangement.SpaceEvenly,
-                horizontalAlignment = Alignment.Start,
-                modifier = Modifier.padding(start = 24.dp)
-            ) {
-                Text(user.data?.name.toString())
-                Text(user.data?.login.toString())
-            }
-        }
-        DrawerTabScreen(
-            username = user.data?.login ?: "",
-            closeDrawer = closeDrawer,
-            onLogout = onLogout,
-            onNavigate = { dest, username, index ->
-                onNavigate(dest, username, index)
-            }
-        )
-    }
-}
-
-@Composable
-fun DrawerTabScreen(
-    username: String,
-    closeDrawer: () -> Unit,
-    onLogout: () -> Unit,
-    onNavigate: (Int, String?, String?) -> Unit
-) {
-
-    var tabIndex by remember { mutableIntStateOf(0) }
-    val tabs = listOf("MENU", "PROFILE")
-
-    Column(modifier = Modifier.fillMaxWidth()) {
-        TabRow(
-            selectedTabIndex = tabIndex,
-            backgroundColor = Color.Transparent,
-            contentColor = Color.Blue
-        ) {
-            tabs.forEachIndexed { index, title ->
-                Tab(
-                    text = {
-                        if (tabIndex == index) {
-                            Text(title, color = Color.Blue)
-                        } else {
-                            Text(title, color = Color.Black)
-                        }
-                    },
-                    selected = tabIndex == index,
-                    onClick = { tabIndex = index },
-                )
-            }
-        }
-        when (tabIndex) {
-            0 -> DrawerMenuScreen(username, closeDrawer, onNavigate)
-            1 -> DrawerProfileScreen(username, onNavigate, onLogout)
-        }
-    }
-}
-
-@Composable
-fun DrawerMenuScreen(
-    username: String,
-    closeDrawer: () -> Unit,
-    onNavigate: (Int, String?, String?) -> Unit
-) {
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .verticalScroll(rememberScrollState()),
-        horizontalAlignment = Alignment.Start,
-        verticalArrangement = Arrangement.Top
-    ) {
-        Row(verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.Start,
-            modifier = Modifier
-                .fillMaxWidth(1F)
-                .padding(top = 4.dp, bottom = 2.dp)
-                .clickable {
-                    closeDrawer()
-                }) {
-            Image(
-                painter = painterResource(id = R.drawable.baseline_home_24),
-                contentDescription = "home icon",
-                modifier = Modifier.padding(start = 32.dp, top = 12.dp, bottom = 12.dp),
-            )
-            Text(
-                text = "Home",
-                modifier = Modifier.padding(start = 24.dp, top = 12.dp, bottom = 12.dp),
-                fontSize = 16.sp,
-            )
-        }
-
-        Divider()
-
-        Row(verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.Start,
-            modifier = Modifier
-                .fillMaxWidth(1F)
-                .padding(top = 2.dp, bottom = 2.dp)
-                .clickable {
-                    onNavigate(R.id.action_homeFragment_to_profileFragment, username, null)
-                }) {
-            Image(
-                painter = painterResource(id = R.drawable.baseline_person_24),
-                contentDescription = "Profile icon",
-                modifier = Modifier.padding(start = 32.dp, top = 12.dp, bottom = 12.dp),
-            )
-            Text(
-                text = "Profile",
-                modifier = Modifier.padding(start = 24.dp, top = 12.dp, bottom = 12.dp),
-                fontSize = 16.sp,
-            )
-        }
-
-        Row(verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.Start,
-            modifier = Modifier
-                .fillMaxWidth(1F)
-                .padding(top = 2.dp, bottom = 2.dp)
-                .clickable { }) {
-            Image(
-                painter = painterResource(id = R.drawable.baseline_people_alt_24),
-                contentDescription = "Organizations icon",
-                modifier = Modifier.padding(start = 32.dp, top = 12.dp, bottom = 12.dp),
-            )
-            Text(
-                text = "Organizations",
-                modifier = Modifier.padding(start = 24.dp, top = 12.dp, bottom = 12.dp),
-            )
-        }
-
-        Row(verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.Start,
-            modifier = Modifier
-                .fillMaxWidth(1F)
-                .padding(top = 2.dp, bottom = 2.dp)
-                .clickable {
-                    onNavigate(R.id.action_homeFragment_to_notificationsFragment, null, null)
-                }) {
-            Image(
-                painter = painterResource(id = R.drawable.baseline_notifications_24),
-                contentDescription = "Notifications icon",
-                modifier = Modifier.padding(start = 32.dp, top = 12.dp, bottom = 12.dp),
-            )
-            Text(
-                text = "Notifications",
-                modifier = Modifier.padding(start = 24.dp, top = 12.dp, bottom = 12.dp),
-            )
-        }
-
-        Divider()
-
-        Row(verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.Start,
-            modifier = Modifier
-                .fillMaxWidth(1F)
-                .padding(top = 4.dp, bottom = 2.dp)
-                .clickable { onNavigate(R.id.action_homeFragment_to_pinnedFragment, null, null) }) {
-            Image(
-                painter = painterResource(id = R.drawable.baseline_bookmark_24),
-                contentDescription = "Pinned icon",
-                modifier = Modifier.padding(start = 32.dp, top = 12.dp, bottom = 12.dp),
-            )
-            Text(
-                text = "Pinned",
-                modifier = Modifier.padding(start = 24.dp, top = 12.dp, bottom = 12.dp),
-            )
-        }
-
-        Row(verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.Start,
-            modifier = Modifier
-                .fillMaxWidth(1F)
-                .padding(top = 2.dp, bottom = 2.dp)
-                .clickable { }) {
-            Image(
-                painter = painterResource(id = R.drawable.baseline_trending_up_24),
-                contentDescription = "Trending icon",
-                modifier = Modifier.padding(start = 32.dp, top = 12.dp, bottom = 12.dp),
-            )
-            Text(
-                text = "Trending",
-                modifier = Modifier.padding(start = 24.dp, top = 12.dp, bottom = 12.dp),
-            )
-        }
-
-        Row(verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.Start,
-            modifier = Modifier
-                .fillMaxWidth(1F)
-                .padding(top = 2.dp, bottom = 4.dp)
-                .clickable {
-                    onNavigate(R.id.action_homeFragment_to_gistsFragment, null, null)
-                }) {
-            Image(
-                painter = painterResource(id = R.drawable.baseline_code_24),
-                contentDescription = "Gists icon",
-                modifier = Modifier.padding(start = 32.dp, top = 12.dp, bottom = 12.dp),
-            )
-            Text(
-                text = "Gists",
-                modifier = Modifier.padding(start = 24.dp, top = 12.dp, bottom = 12.dp),
-            )
-        }
-
-        Divider()
-
-        Row(verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.Start,
-            modifier = Modifier
-                .fillMaxWidth(1F)
-                .padding(top = 4.dp, bottom = 2.dp)
-                .clickable { }) {
-            Image(
-                painter = painterResource(id = R.drawable.ic_fasthub_mascot),
-                contentDescription = "JetHub icon",
-                modifier = Modifier.padding(start = 32.dp, top = 12.dp, bottom = 12.dp),
-            )
-            Text(
-                text = "JetHub",
-                modifier = Modifier.padding(start = 24.dp, top = 12.dp, bottom = 12.dp),
-            )
-        }
-
-        Row(verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.Start,
-            modifier = Modifier
-                .fillMaxWidth(1F)
-                .padding(top = 2.dp, bottom = 2.dp)
-                .clickable { onNavigate(R.id.action_homeFragment_to_faqFragment, null, null) }) {
-            Image(
-                painter = painterResource(id = R.drawable.baseline_info_24),
-                contentDescription = "FAQ icon",
-                modifier = Modifier.padding(start = 32.dp, top = 12.dp, bottom = 12.dp),
-            )
-            Text(
-                text = "FAQ",
-                modifier = Modifier.padding(start = 24.dp, top = 12.dp, bottom = 12.dp),
-            )
-        }
-
-        Row(verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.Start,
-            modifier = Modifier
-                .fillMaxWidth(1F)
-                .padding(top = 2.dp, bottom = 2.dp)
-                .clickable {
-                    onNavigate(R.id.action_homeFragment_to_settingsFragment, null, null)
-                }) {
-            Image(
-                painter = painterResource(id = R.drawable.baseline_settings_24),
-                contentDescription = "Setting icon",
-                modifier = Modifier.padding(start = 32.dp, top = 12.dp, bottom = 12.dp),
-            )
-            Text(
-                text = "Setting",
-                modifier = Modifier.padding(start = 24.dp, top = 12.dp, bottom = 12.dp),
-            )
-        }
-
-        Row(verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.Start,
-            modifier = Modifier
-                .fillMaxWidth(1F)
-                .padding(top = 2.dp, bottom = 2.dp)
-                .clickable { }) {
-            Image(
-                painter = painterResource(id = R.drawable.ic_money),
-                contentDescription = "Restore Purchases icon",
-                modifier = Modifier.padding(start = 32.dp, top = 12.dp, bottom = 12.dp),
-            )
-            Text(
-                text = "Restore Purchases",
-                modifier = Modifier.padding(start = 24.dp, top = 12.dp, bottom = 12.dp),
-            )
-        }
-
-        Row(verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.Start,
-            modifier = Modifier
-                .fillMaxWidth(1F)
-                .padding(top = 2.dp, bottom = 2.dp)
-                .clickable {
-                    onNavigate(R.id.action_homeFragment_to_aboutFragment, null, null)
-                }) {
-            Image(
-                painter = painterResource(id = R.drawable.baseline_info_24),
-                contentDescription = "About icon",
-                modifier = Modifier.padding(start = 32.dp, top = 12.dp, bottom = 12.dp),
-            )
-            Text(
-                text = "About",
-                modifier = Modifier.padding(start = 24.dp, top = 12.dp, bottom = 12.dp),
-            )
-        }
-    }
-}
-
-@Composable
-fun DrawerProfileScreen(
-    username: String,
-    onNavigate: (Int, String?, String?) -> Unit,
-    onLogout: () -> Unit
-) {
-    Column(
-        modifier = Modifier.fillMaxSize(),
-        horizontalAlignment = Alignment.Start,
-        verticalArrangement = Arrangement.Top
-    ) {
-        Row(verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.Start,
-            modifier = Modifier
-                .fillMaxWidth(1F)
-                .padding(top = 4.dp, bottom = 2.dp)
-                .clickable { onLogout() }) {
-            Image(
-                painter = painterResource(id = R.drawable.ic_logout),
-                contentDescription = "Logout icon",
-                modifier = Modifier.padding(start = 32.dp, top = 12.dp, bottom = 12.dp),
-            )
-            Text(
-                text = "Logout",
-                modifier = Modifier.padding(start = 24.dp, top = 12.dp, bottom = 12.dp),
-                fontSize = 16.sp,
-            )
-        }
-
-        Divider()
-
-        Row(verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.Start,
-            modifier = Modifier
-                .fillMaxWidth(1F)
-                .padding(top = 4.dp, bottom = 2.dp)
-                .clickable {
-                    onNavigate(R.id.action_homeFragment_to_addAccountFragment, null, null)
-                }
-        ) {
-            Image(
-                painter = painterResource(id = R.drawable.ic_add),
-                contentDescription = "Add Account icon",
-                modifier = Modifier.padding(start = 32.dp, top = 12.dp, bottom = 12.dp),
-            )
-            Text(
-                text = "Add Account",
-                modifier = Modifier.padding(start = 24.dp, top = 12.dp, bottom = 12.dp),
-                fontSize = 16.sp,
-            )
-        }
-
-        Divider()
-
-        Row(verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.Start,
-            modifier = Modifier
-                .fillMaxWidth(1F)
-                .padding(top = 4.dp, bottom = 2.dp)
-                .clickable {
-                    onNavigate(R.id.action_homeFragment_to_profileFragment, username, "2")
-                }) {
-            Image(
-                painter = painterResource(id = R.drawable.baseline_book_24),
-                contentDescription = "Repositories icon",
-                modifier = Modifier.padding(start = 32.dp, top = 12.dp, bottom = 12.dp),
-            )
-            Text(
-                text = "Repositories",
-                modifier = Modifier.padding(start = 24.dp, top = 12.dp, bottom = 12.dp),
-                fontSize = 16.sp,
-            )
-        }
-
-        Divider()
-
-        Row(verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.Start,
-            modifier = Modifier
-                .fillMaxWidth(1F)
-                .padding(top = 4.dp, bottom = 2.dp)
-                .clickable {
-                    onNavigate(
-                        R.id.action_homeFragment_to_profileFragment,
-                        username,
-                        "3"
-                    )
-                }) {
-            Image(
-                painter = painterResource(id = R.drawable.baseline_star_24),
-                contentDescription = "Starred icon",
-                modifier = Modifier.padding(start = 32.dp, top = 12.dp, bottom = 12.dp),
-            )
-            Text(
-                text = "Starred",
-                modifier = Modifier.padding(start = 24.dp, top = 12.dp, bottom = 12.dp),
-                fontSize = 16.sp,
-            )
-        }
-
-        Divider()
-
-        Row(verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.Start,
-            modifier = Modifier
-                .fillMaxWidth(1F)
-                .padding(top = 4.dp, bottom = 2.dp)
-                .clickable { onNavigate(R.id.action_homeFragment_to_pinnedFragment, null, null) }) {
-            Image(
-                painter = painterResource(id = R.drawable.baseline_bookmark_border_24),
-                contentDescription = "Pinned icon",
-                modifier = Modifier.padding(start = 32.dp, top = 12.dp, bottom = 12.dp),
-            )
-            Text(
-                text = "Pinned",
-                modifier = Modifier.padding(start = 24.dp, top = 12.dp, bottom = 12.dp),
-                fontSize = 16.sp,
-            )
         }
     }
 }

@@ -7,7 +7,6 @@ import com.hasan.jetfasthub.screens.main.search.models.code_model.CodeModel
 import com.hasan.jetfasthub.screens.main.search.models.issues_model.IssuesModel
 import com.hasan.jetfasthub.screens.main.search.models.repository_model.RepositoryModel
 import com.hasan.jetfasthub.screens.main.search.models.users_model.UserModel
-import com.hasan.jetfasthub.utility.Resource
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
@@ -18,6 +17,12 @@ class SearchViewModel(private val repository: SearchRepository) : ViewModel() {
 
     private var _state: MutableStateFlow<SearchScreenState> = MutableStateFlow(SearchScreenState())
     val state = _state.asStateFlow()
+
+    fun setInitialQuery(query: String){
+        _state.update {
+            it.copy(InitialQuery = query)
+        }
+    }
 
     fun searchRepositories(token: String, query: String, page: Long) {
         _state.update {
@@ -138,6 +143,7 @@ class SearchViewModel(private val repository: SearchRepository) : ViewModel() {
 }
 
 data class SearchScreenState(
+    val InitialQuery: String  = "",
     val Repositories: ResourceWithInitial<RepositoryModel> = ResourceWithInitial.Initial(),
     val Users: ResourceWithInitial<UserModel> = ResourceWithInitial.Initial(),
     val Issues: ResourceWithInitial<IssuesModel> = ResourceWithInitial.Initial(),

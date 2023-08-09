@@ -8,7 +8,7 @@ import com.hasan.jetfasthub.screens.main.home.user_model.GitHubUser
 import com.hasan.jetfasthub.screens.main.profile.model.event_model.UserEvents
 import com.hasan.jetfasthub.screens.main.profile.model.followers_model.FollowersModel
 import com.hasan.jetfasthub.screens.main.profile.model.following_model.FollowingModel
-import com.hasan.jetfasthub.screens.main.profile.model.gist_model.GistModel
+import com.hasan.jetfasthub.screens.main.profile.model.gist_model.GistsModel
 import com.hasan.jetfasthub.screens.main.profile.model.org_model.OrgModel
 import com.hasan.jetfasthub.screens.main.profile.model.repo_model.UserRepositoryModel
 import com.hasan.jetfasthub.screens.main.profile.model.starred_repo_model.StarredRepoModel
@@ -27,21 +27,40 @@ class ProfileViewModel(private val repository: ProfileRepository) : ViewModel() 
         MutableStateFlow(ProfileScreenState())
     val state = _state.asStateFlow()
 
+    fun setUserName( username: String, authUser: String){
+        _state.update {
+            it.copy(
+                AuthUsername  = authUser,
+                Username = username
+            )
+        }
+    }
+
     fun getUser(token: String, username: String) {
         viewModelScope.launch {
-            repository.getUser(token, username).let { user ->
-                if (user.isSuccessful) {
-                    _state.update {
-                        it.copy(OverviewScreenState = UserOverviewScreen.Content(user.body()!!))
-                    }
-                } else {
-                    _state.update {
-                        it.copy(
-                            OverviewScreenState = UserOverviewScreen.Error(
-                                user.errorBody().toString()
+            try {
+                repository.getUser(token, username).let { user ->
+                    if (user.isSuccessful) {
+                        _state.update {
+                            it.copy(OverviewScreenState = UserOverviewScreen.Content(user.body()!!))
+                        }
+                    } else {
+                        _state.update {
+                            it.copy(
+                                OverviewScreenState = UserOverviewScreen.Error(
+                                    user.errorBody().toString()
+                                )
                             )
-                        )
+                        }
                     }
+                }
+            }catch (e: Exception){
+                _state.update {
+                    it.copy(
+                        OverviewScreenState = UserOverviewScreen.Error(
+                            e.message.toString()
+                        )
+                    )
                 }
             }
         }
@@ -49,19 +68,29 @@ class ProfileViewModel(private val repository: ProfileRepository) : ViewModel() 
 
     fun getUserOrganisations(token: String, username: String) {
         viewModelScope.launch {
-            repository.getUserOrganisations(token, username).let { organisations ->
-                if (organisations.isSuccessful) {
-                    _state.update {
-                        it.copy(UserOrganisations = Resource.Success(organisations.body()!!))
-                    }
-                } else {
-                    _state.update {
-                        it.copy(
-                            UserOrganisations = Resource.Failure(
-                                organisations.errorBody().toString()
+            try {
+                repository.getUserOrganisations(token, username).let { organisations ->
+                    if (organisations.isSuccessful) {
+                        _state.update {
+                            it.copy(UserOrganisations = Resource.Success(organisations.body()!!))
+                        }
+                    } else {
+                        _state.update {
+                            it.copy(
+                                UserOrganisations = Resource.Failure(
+                                    organisations.errorBody().toString()
+                                )
                             )
-                        )
+                        }
                     }
+                }
+            }catch (e: Exception){
+                _state.update {
+                    it.copy(
+                        UserOrganisations = Resource.Failure(
+                            e.message.toString()
+                        )
+                    )
                 }
             }
         }
@@ -272,17 +301,18 @@ class ProfileViewModel(private val repository: ProfileRepository) : ViewModel() 
             try {
                 repository.unfollowUser(token, username).let { response ->
                     if (response.code() == 204) {
-
-                        trySend(false)
-
+                        trySend(true)
                         _state.update {
                             it.copy(
                                 isFollowing = false,
                             )
                         }
+                    }else{
+                        trySend(false)
                     }
                 }
             } catch (e: Exception) {
+                trySend(false)
                 Log.d("ahi3646", "unfollowUser: exception - ${e.message} ")
             }
         }
@@ -297,17 +327,18 @@ class ProfileViewModel(private val repository: ProfileRepository) : ViewModel() 
             try {
                 repository.followUser(token, username).let { res ->
                     if (res.code() == 204) {
-
                         trySend(true)
-
                         _state.update {
                             it.copy(
                                 isFollowing = true,
                             )
                         }
+                    }else{
+                        trySend(false)
                     }
                 }
             } catch (e: Exception) {
+                trySend(false)
                 Log.d("ahi3646", "followUser:  ${e.message}")
             }
         }
@@ -338,7 +369,6 @@ class ProfileViewModel(private val repository: ProfileRepository) : ViewModel() 
             try {
                 repository.blockUser(token, username).let { response ->
                     trySend(true)
-
                     if (response.code() == 204) {
                         _state.update {
                             it.copy(isUserBlocked = true)
@@ -361,14 +391,16 @@ class ProfileViewModel(private val repository: ProfileRepository) : ViewModel() 
             try {
                 repository.unblockUser(token, username).let { response ->
                     trySend(false)
-
                     if (response.code() == 204) {
                         _state.update {
                             it.copy(isUserBlocked = false)
                         }
+                    }else{
+                        trySend(false)
                     }
                 }
             } catch (e: Exception) {
+                trySend(false)
                 Log.d("ahi3646", "blockUser: ${e.message} ")
             }
         }
@@ -383,6 +415,8 @@ class ProfileViewModel(private val repository: ProfileRepository) : ViewModel() 
 
 
 data class ProfileScreenState(
+    val Username: String = "",
+    val AuthUsername: String = "",
     val OverviewScreenState: UserOverviewScreen = UserOverviewScreen.Loading,
     val UserOrganisations: Resource<OrgModel> = Resource.Loading(),
     val UserEvents: Resource<UserEvents> = Resource.Loading(),
@@ -390,10 +424,12 @@ data class ProfileScreenState(
     val UserStarredRepositories: Resource<StarredRepoModel> = Resource.Loading(),
     val UserFollowings: Resource<FollowingModel> = Resource.Loading(),
     val UserFollowers: Resource<FollowersModel> = Resource.Loading(),
-    val UserGists: Resource<GistModel> = Resource.Loading(),
-    var isFollowing: Boolean = false,
-    var isUserBlocked: Boolean = false
-)
+    val UserGists: Resource<GistsModel> = Resource.Loading(),
+    val isFollowing: Boolean = false,
+    val isUserBlocked: Boolean = false
+){
+    fun isMe() = Username == AuthUsername
+}
 
 sealed interface UserOverviewScreen {
 

@@ -29,6 +29,7 @@
                 <data
                     android:host="login"
                     android:scheme="jetfasthub" />
+
             </intent-filter>
 
         </activity>
@@ -36,6 +37,7 @@
         <activity
             android:name=".screens.main.AppActivity"
             android:exported="true"
+            android:windowSoftInputMode="adjustResize"
             android:theme="@style/Theme.JetFastHub">
 
             <intent-filter>

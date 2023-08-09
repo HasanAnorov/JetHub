@@ -10,6 +10,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import kotlin.Exception
 
 class NotificationsViewModel(private val repository: NotificationRepository) : ViewModel() {
 
@@ -20,15 +21,21 @@ class NotificationsViewModel(private val repository: NotificationRepository) : V
 
     fun getAllNotifications(token: String){
         viewModelScope.launch {
-            repository.getAllNotifications(token).let { allNotifications ->
-                if (allNotifications.isSuccessful){
-                    _state.update {
-                        it.copy(allNotifications = Resource.Success(allNotifications.body()!!))
+            try {
+                repository.getAllNotifications(token).let { allNotifications ->
+                    if (allNotifications.isSuccessful){
+                        _state.update {
+                            it.copy(allNotifications = Resource.Success(allNotifications.body()!!))
+                        }
+                    }else{
+                        _state.update {
+                            it.copy(allNotifications = Resource.Failure(allNotifications.errorBody().toString()))
+                        }
                     }
-                }else{
-                    _state.update {
-                        it.copy(allNotifications = Resource.Failure(allNotifications.errorBody().toString()))
-                    }
+                }
+            }catch (e: Exception){
+                _state.update {
+                    it.copy(allNotifications = Resource.Failure(e.message.toString()))
                 }
             }
         }
@@ -36,15 +43,21 @@ class NotificationsViewModel(private val repository: NotificationRepository) : V
 
     fun getUnreadNotifications(token: String, date: String){
         viewModelScope.launch {
-            repository.getUnreadNotifications(token, date).let { unreadNotifications ->
-                if (unreadNotifications.isSuccessful){
-                    _state.update {
-                        it.copy(unreadNotifications = Resource.Success(unreadNotifications.body()!!))
+            try {
+                repository.getUnreadNotifications(token, date).let { unreadNotifications ->
+                    if (unreadNotifications.isSuccessful){
+                        _state.update {
+                            it.copy(unreadNotifications = Resource.Success(unreadNotifications.body()!!))
+                        }
+                    }else{
+                        _state.update {
+                            it.copy(unreadNotifications = Resource.Failure(unreadNotifications.errorBody().toString()))
+                        }
                     }
-                }else{
-                    _state.update {
-                        it.copy(unreadNotifications = Resource.Failure(unreadNotifications.errorBody().toString()))
-                    }
+                }
+            }catch (e: Exception){
+                _state.update {
+                    it.copy(unreadNotifications = Resource.Failure(e.message.toString()))
                 }
             }
         }
@@ -52,14 +65,19 @@ class NotificationsViewModel(private val repository: NotificationRepository) : V
 
     fun markAsRead(token: String, threadId: String){
         viewModelScope.launch {
-            repository.markAsRead(token, threadId).let { resetContent ->
-                if (resetContent.isSuccessful){
-                    getUnreadNotifications(token, "it will get a week before by default")
-                    Log.d("ahi3646", "markAsRead: ${resetContent.body()} ")
-                }else{
-                    getUnreadNotifications(token, "it will get a week before by default")
-                    Log.d("ahi3646", "markAsRead: ${resetContent.errorBody()} ")
+            try {
+                repository.markAsRead(token, threadId).let { resetContent ->
+                    if (resetContent.isSuccessful){
+                        getUnreadNotifications(token, "it will get a week before by default")
+                        Log.d("ahi3646", "markAsRead: ${resetContent.body()} ")
+                    }else{
+                        getUnreadNotifications(token, "it will get a week before by default")
+                        Log.d("ahi3646", "markAsRead: ${resetContent.errorBody()} ")
+                    }
                 }
+            }catch (e: Exception){
+                getUnreadNotifications(token, "it will get a week before by default")
+                Log.d("ahi3646", "markAsRead: ${e.message.toString()} ")
             }
         }
     }

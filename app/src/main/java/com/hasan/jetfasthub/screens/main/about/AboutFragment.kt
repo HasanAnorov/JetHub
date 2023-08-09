@@ -27,6 +27,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.platform.ComposeView
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
@@ -39,18 +40,14 @@ import com.hasan.jetfasthub.ui.theme.JetFastHubTheme
 class AboutFragment : Fragment() {
 
     override fun onCreateView(
-        inflater: LayoutInflater,
-        container: ViewGroup?,
-        savedInstanceState: Bundle?
+        inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?
     ): View {
         return ComposeView(requireContext()).apply {
             setContent {
                 JetFastHubTheme {
-                    MainContent(
-                        onNavigate = {
-                            findNavController().popBackStack()
-                        }
-                    )
+                    MainContent(onNavigate = {
+                        findNavController().popBackStack()
+                    })
                 }
             }
         }
@@ -62,17 +59,17 @@ class AboutFragment : Fragment() {
 private fun MainContent(onNavigate: () -> Unit) {
     val state = rememberScaffoldState()
     Scaffold(
-        scaffoldState = state,
-        topBar = {
+        scaffoldState = state, topBar = {
             TopAppBarContent(onNavigate)
-        }
+        }, backgroundColor = MaterialTheme.colorScheme.surfaceVariant
     ) { contentPadding ->
         Surface(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(16.dp)
                 .padding(contentPadding),
-            shadowElevation = 9.dp
+            shadowElevation = 9.dp,
+            color = MaterialTheme.colorScheme.secondaryContainer
         ) {
             Column(
                 modifier = Modifier.padding(16.dp),
@@ -81,7 +78,7 @@ private fun MainContent(onNavigate: () -> Unit) {
             ) {
                 Text(
                     text = "About",
-                    style = androidx.compose.material.MaterialTheme.typography.subtitle1
+                    style = androidx.compose.material.MaterialTheme.typography.subtitle1,
                 )
 
                 Spacer(modifier = Modifier.height(8.dp))
@@ -92,14 +89,14 @@ private fun MainContent(onNavigate: () -> Unit) {
                         .fillMaxWidth(1F)
                         .clickable {
 
-                        }
-                ) {
+                        }) {
                     Image(
                         painter = painterResource(id = R.drawable.baseline_person_24),
                         contentDescription = "Profile icon",
                         modifier = Modifier.padding(top = 12.dp, bottom = 12.dp),
+                        colorFilter = ColorFilter.tint(color = MaterialTheme.colorScheme.onSecondaryContainer)
                     )
-                    androidx.compose.material.Text(
+                    Text(
                         text = "Hasan Anorov",
                         modifier = Modifier.padding(start = 24.dp, top = 12.dp, bottom = 12.dp),
                         fontSize = 16.sp,
@@ -114,12 +111,12 @@ private fun MainContent(onNavigate: () -> Unit) {
                         .fillMaxWidth(1F)
                         .clickable {
 
-                        }
-                ) {
+                        }) {
                     Image(
                         painter = painterResource(id = R.drawable.ic_github),
                         contentDescription = "Profile icon",
                         modifier = Modifier.padding(top = 12.dp, bottom = 12.dp),
+                        colorFilter = ColorFilter.tint(color = MaterialTheme.colorScheme.onSecondaryContainer)
                     )
                     Text(
                         text = "HasanAnorov",
@@ -142,8 +139,9 @@ private fun MainContent(onNavigate: () -> Unit) {
                         painter = painterResource(id = R.drawable.ic_email),
                         contentDescription = "Profile icon",
                         modifier = Modifier.padding(top = 12.dp, bottom = 12.dp),
+                        colorFilter = ColorFilter.tint(color = MaterialTheme.colorScheme.onSecondaryContainer)
                     )
-                    androidx.compose.material.Text(
+                    Text(
                         text = "anoorvhasan.edu@gmail.com",
                         modifier = Modifier.padding(start = 24.dp, top = 12.dp, bottom = 12.dp),
                         fontSize = 16.sp,
@@ -164,8 +162,9 @@ private fun MainContent(onNavigate: () -> Unit) {
                         painter = painterResource(id = R.drawable.baseline_contact_phone_24),
                         contentDescription = "Profile icon",
                         modifier = Modifier.padding(top = 12.dp, bottom = 12.dp),
+                        colorFilter = ColorFilter.tint(color = MaterialTheme.colorScheme.onSecondaryContainer)
                     )
-                    androidx.compose.material.Text(
+                    Text(
                         text = "+ 998 93 337 36 46",
                         modifier = Modifier.padding(start = 24.dp, top = 12.dp, bottom = 12.dp),
                         fontSize = 16.sp,
@@ -184,8 +183,7 @@ private fun TopAppBarContent(
     Surface(
         modifier = Modifier
             .fillMaxWidth()
-            .background(Color.White),
-        shadowElevation = 9.dp
+            .background(Color.White), shadowElevation = 9.dp
     ) {
         Row(
             verticalAlignment = Alignment.CenterVertically,
@@ -197,7 +195,7 @@ private fun TopAppBarContent(
             }
 
             Text(
-                color = Color.Black,
+                color = MaterialTheme.colorScheme.onSurface,
                 modifier = Modifier
                     .weight(1F)
                     .padding(start = 10.dp, end = 10.dp),

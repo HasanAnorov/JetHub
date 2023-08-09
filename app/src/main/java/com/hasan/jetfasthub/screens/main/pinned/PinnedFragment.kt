@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Icon
@@ -21,12 +22,11 @@ import androidx.compose.material3.Tab
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.ComposeView
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
@@ -75,7 +75,9 @@ class PinnedFragment : Fragment() {
 
 @Composable
 private fun MainContent(onNavigate: (Int, String?) -> Unit) {
-    Scaffold(topBar = { TopAppBarContent(onNavigate) }) { paddingValues ->
+    Scaffold(
+        topBar = { TopAppBarContent(onNavigate) }
+    ) { paddingValues ->
         TabScreen(contentPaddingValues = paddingValues)
     }
 
@@ -86,7 +88,7 @@ private fun TabScreen(
     contentPaddingValues: PaddingValues,
 ) {
 
-    var tabIndex by remember { mutableStateOf(0) }
+    var tabIndex by remember { mutableIntStateOf(0) }
     val tabs =
         listOf("REPOSITORIES", "ISSUES", "PULL REQUESTS", "GISTS")
 
@@ -94,22 +96,32 @@ private fun TabScreen(
         modifier = Modifier
             .padding(contentPaddingValues)
             .fillMaxWidth()
+            .background(MaterialTheme.colorScheme.surface)
     ) {
         ScrollableTabRow(
             selectedTabIndex = tabIndex,
-            edgePadding = 0.dp
+            edgePadding = 0.dp,
+            contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
         ) {
             tabs.forEachIndexed { index, title ->
                 Tab(
                     text = {
                         if (tabIndex == index) {
-                            Text(title, color = Color.Blue)
+                            Text(
+                                title,
+                                color = MaterialTheme.colorScheme.onPrimaryContainer
+                            )
                         } else {
-                            Text(title, color = Color.Black)
+                            Text(
+                                title,
+                                color = MaterialTheme.colorScheme.outline
+                            )
                         }
                     },
                     selected = tabIndex == index,
                     onClick = { tabIndex = index },
+                    selectedContentColor = MaterialTheme.colorScheme.onPrimaryContainer,
+                    unselectedContentColor = MaterialTheme.colorScheme.inverseOnSurface
                 )
             }
         }
@@ -124,22 +136,66 @@ private fun TabScreen(
 
 @Composable
 fun Repositories() {
-
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(MaterialTheme.colorScheme.surfaceVariant),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center
+    ) {
+        androidx.compose.material.Text(
+            text = "No gists!",
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+    }
 }
 
 @Composable
 fun Issues() {
-
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(MaterialTheme.colorScheme.surfaceVariant),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center
+    ) {
+        androidx.compose.material.Text(
+            text = "No gists!",
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+    }
 }
 
 @Composable
 fun PullRequests() {
-
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(MaterialTheme.colorScheme.surfaceVariant),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center
+    ) {
+        androidx.compose.material.Text(
+            text = "No gists!",
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+    }
 }
 
 @Composable
 fun Gists() {
-
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(MaterialTheme.colorScheme.surfaceVariant),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center
+    ) {
+        androidx.compose.material.Text(
+            text = "No gists!",
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+    }
 }
 
 
@@ -157,9 +213,8 @@ private fun TopAppBarContent(
             modifier = Modifier
                 .padding(top = 4.dp, bottom = 4.dp)
                 .fillMaxWidth()
-                .background(Color.White),
 
-            ) {
+        ) {
             IconButton(onClick = {
                 onBackPressed(-1, null)
             }) {
@@ -170,7 +225,7 @@ private fun TopAppBarContent(
             }
 
             Text(
-                color = Color.Black,
+                color = MaterialTheme.colorScheme.onSurface,
                 modifier = Modifier
                     .weight(1F)
                     .padding(start = 10.dp, end = 10.dp),

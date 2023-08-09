@@ -51,17 +51,20 @@ android {
 
 dependencies {
 
-    //jackson
-//    implementation 'com.squareup.retrofit2:converter-jackson:2.7.2'
-//    implementation 'com.fasterxml.jackson.core:jackson-databind:2.11.1'
-//    implementation 'com.fasterxml.jackson.core:jackson-core:2.11.1'
-//    implementation 'com.fasterxml.jackson.core:jackson-annotations:2.11.1'
+    implementation("com.mohamedrejeb.richeditor:richeditor-compose:1.0.0-beta01")
 
-    //tablayout
+    //constraint layout
+    implementation "androidx.constraintlayout:constraintlayout-compose:1.0.1"
+
+    //pagination
+    implementation("androidx.paging:paging-runtime:3.2.0")
+    implementation("androidx.paging:paging-compose:3.2.0")
+
+    //tab layout
     implementation 'com.google.accompanist:accompanist-pager:0.13.0'
     implementation 'com.google.accompanist:accompanist-pager-indicators:0.13.0'
 
-    //Landscappist
+    //landscapist
     implementation "com.github.skydoves:landscapist-glide:2.2.0"
 
     implementation 'androidx.constraintlayout:constraintlayout:2.1.4'

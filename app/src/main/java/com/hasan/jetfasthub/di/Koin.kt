@@ -1,10 +1,13 @@
 package com.hasan.jetfasthub.di
 
-import com.chuckerteam.chucker.api.ChuckerCollector
-import com.chuckerteam.chucker.api.ChuckerInterceptor
-import com.google.gson.GsonBuilder
 import com.hasan.jetfasthub.data.AuthRepository
 import com.hasan.jetfasthub.data.AuthRepositoryImpl
+import com.hasan.jetfasthub.data.CommentRepository
+import com.hasan.jetfasthub.data.CommentRepositoryImpl
+import com.hasan.jetfasthub.data.CommitRepository
+import com.hasan.jetfasthub.data.CommitRepositoryImpl
+import com.hasan.jetfasthub.data.GistRepository
+import com.hasan.jetfasthub.data.GistRepositoryImpl
 import com.hasan.jetfasthub.data.GistsRepository
 import com.hasan.jetfasthub.data.GistsRepositoryImpl
 import com.hasan.jetfasthub.screens.login.LoginViewModel
@@ -21,8 +24,11 @@ import com.hasan.jetfasthub.data.Repository
 import com.hasan.jetfasthub.data.RepositoryImpl
 import com.hasan.jetfasthub.data.SearchRepository
 import com.hasan.jetfasthub.data.SearchRepositoryImpl
-import com.hasan.jetfasthub.networking.AuthInterceptor
-import com.hasan.jetfasthub.networking.GitHubService
+import com.hasan.jetfasthub.data.download.AndroidDownloader
+import com.hasan.jetfasthub.data.download.Downloader
+import com.hasan.jetfasthub.screens.main.commits.CommitViewModel
+import com.hasan.jetfasthub.screens.main.commits.EditCommentViewModel
+import com.hasan.jetfasthub.screens.main.gists.GistViewModel
 import com.hasan.jetfasthub.screens.main.gists.GistsViewModel
 import com.hasan.jetfasthub.screens.main.home.HomeViewModel
 import com.hasan.jetfasthub.screens.main.notifications.NotificationsViewModel
@@ -30,59 +36,12 @@ import com.hasan.jetfasthub.screens.main.organisations.OrganisationsViewModel
 import com.hasan.jetfasthub.screens.main.profile.ProfileViewModel
 import com.hasan.jetfasthub.screens.main.repository.RepositoryViewModel
 import com.hasan.jetfasthub.screens.main.search.SearchViewModel
-import com.hasan.jetfasthub.utility.Constants
-import okhttp3.OkHttpClient
-import okhttp3.logging.HttpLoggingInterceptor
 import org.koin.androidx.viewmodel.dsl.viewModel
-import org.koin.androidx.viewmodel.dsl.viewModelOf
 import org.koin.dsl.module
-import retrofit2.Retrofit
-import retrofit2.converter.gson.GsonConverterFactory
 
 val appModule = module {
     single<AuthRepository> { AuthRepositoryImpl(get()) }
     viewModel { LoginViewModel(get()) }
-}
-
-val networkModule = module {
-    factory { AuthInterceptor(get()) }
-    factory {
-        provideOkHttpClient(
-            ChuckerInterceptor.Builder(get())
-                .collector(ChuckerCollector(get()))
-                .maxContentLength(250000L)
-                .redactHeaders(emptySet())
-                .alwaysReadResponseBody(false)
-                .build(),
-            HttpLoggingInterceptor().setLevel(HttpLoggingInterceptor.Level.BODY)
-        )
-    }
-    factory { provideGitHubService(get()) }
-    single { provideRetrofit(get()) }
-}
-
-fun provideGitHubService(retrofit: Retrofit): GitHubService {
-    return retrofit.create(GitHubService::class.java)
-}
-
-fun provideRetrofit(okHttpClient: OkHttpClient): Retrofit {
-    val gson = GsonBuilder()
-        .setLenient()
-        .create()
-
-    return Retrofit.Builder()
-        .baseUrl(Constants.BASE_URL)
-        .addConverterFactory(GsonConverterFactory.create(gson))
-        .client(okHttpClient)
-        .build()
-}
-
-fun provideOkHttpClient(
-    chuckerInterceptor: ChuckerInterceptor,
-    httpLoggingInterceptor: HttpLoggingInterceptor
-): OkHttpClient {
-    return OkHttpClient.Builder().addInterceptor(chuckerInterceptor)
-        .addInterceptor(httpLoggingInterceptor).build()
 }
 
 val profileModule = module {
@@ -91,23 +50,40 @@ val profileModule = module {
 }
 
 val organisationModule = module {
-    single<OrganisationRepository>{OrganisationImpl(get())}
-    viewModel{ OrganisationsViewModel(get()) }
+    single<OrganisationRepository> { OrganisationImpl(get()) }
+    viewModel { OrganisationsViewModel(get()) }
 }
 
 val gistsModule = module {
     single<GistsRepository> { GistsRepositoryImpl(get()) }
-    viewModel{ GistsViewModel(get()) }
+    viewModel { GistsViewModel(get()) }
 }
 
-val eventsModule = module {
+val gistModule = module {
+    single<GistRepository> { GistRepositoryImpl(get()) }
+    viewModel { GistViewModel(get()) }
+}
+
+val homeModule = module {
     single<HomeRepository> { HomeRepositoryImpl(get()) }
     viewModel { HomeViewModel(get()) }
 }
 
 val repositoryModule = module {
-    single <Repository>{ RepositoryImpl(get()) }
-    viewModel { RepositoryViewModel(get()) }
+    single<Downloader> { AndroidDownloader(get()) }
+    single<Repository> { RepositoryImpl(get()) }
+    viewModel { RepositoryViewModel(get(), get()) }
+}
+
+val commitModule = module {
+    single<Downloader> { AndroidDownloader(get()) }
+    single<CommitRepository> { CommitRepositoryImpl(get()) }
+    viewModel { CommitViewModel(get(), get()) }
+}
+
+val commentEditModule = module {
+    single<CommentRepository> { CommentRepositoryImpl(get()) }
+    viewModel { EditCommentViewModel(get()) }
 }
 
 val notificationsModule = module {
@@ -122,8 +98,4 @@ val searchModule = module {
 
 val basicAuthViewModelModule = module {
     viewModel { BasicAuthViewModel() }
-}
-
-val homeViewModelModule = module {
-    viewModelOf(::HomeViewModel)
 }

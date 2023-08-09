@@ -88,15 +88,7 @@
             app:popExitAnim="@anim/fade_out"
             app:popUpTo="@id/homeFragment"
             app:destination="@id/gistsFragment" />
-        <action
-            android:id="@+id/action_homeFragment_to_addAccountFragment"
-            app:launchSingleTop="true"
-            app:enterAnim="@anim/fade_in"
-            app:exitAnim="@anim/fade_out"
-            app:popEnterAnim="@anim/fade_in"
-            app:popExitAnim="@anim/fade_out"
-            app:popUpTo="@id/homeFragment"
-            app:destination="@id/addAccountFragment" />
+
         <action
             android:id="@+id/action_homeFragment_to_pinnedFragment"
             app:launchSingleTop="true"
@@ -115,16 +107,6 @@
         android:label="ProfileFragment" >
 
         <action
-            android:id="@+id/action_profileFragment_to_homeFragment"
-            app:destination="@id/homeFragment"
-            app:popUpTo="@id/homeFragment"
-            app:enterAnim="@anim/fade_in"
-            app:exitAnim="@anim/fade_out"
-            app:popEnterAnim="@anim/fade_in"
-            app:popExitAnim="@anim/fade_out"
-            app:popUpToInclusive="true" />
-
-        <action
             android:id="@+id/action_profileFragment_to_organisationsFragment"
             app:launchSingleTop="true"
             app:enterAnim="@anim/fade_in"
@@ -133,6 +115,26 @@
             app:popExitAnim="@anim/fade_out"
             app:popUpTo="@id/profileFragment"
             app:destination="@id/organisationsFragment" />
+
+        <action
+            android:id="@+id/action_profileFragment_to_gistFragment"
+            app:launchSingleTop="true"
+            app:enterAnim="@anim/fade_in"
+            app:exitAnim="@anim/fade_out"
+            app:popEnterAnim="@anim/fade_in"
+            app:popExitAnim="@anim/fade_out"
+            app:popUpTo="@id/profileFragment"
+            app:destination="@id/gistFragment" />
+
+        <action
+            android:id="@+id/action_profileFragment_to_repositoryFragment"
+            app:launchSingleTop="true"
+            app:enterAnim="@anim/fade_in"
+            app:exitAnim="@anim/fade_out"
+            app:popEnterAnim="@anim/fade_in"
+            app:popExitAnim="@anim/fade_out"
+            app:popUpTo="@id/profileFragment"
+            app:destination="@id/repositoryFragment" />
 
         <action
             android:id="@+id/action_profileFragment_self"
@@ -169,14 +171,24 @@
         android:label="SearchFragment" >
 
         <action
-            android:id="@+id/action_searchFragment_to_homeFragment"
-            app:destination="@id/homeFragment"
+            android:id="@+id/action_searchFragment_to_profileFragment"
+            app:destination="@id/profileFragment"
+            app:popUpTo="@id/searchFragment"
+            app:enterAnim="@anim/fade_in"
+            app:exitAnim="@anim/fade_out"
+            app:popEnterAnim="@anim/fade_in"
+            app:popExitAnim="@anim/fade_out"
+            app:popUpToInclusive="false"/>
+
+        <action
+            android:id="@+id/action_searchFragment_to_repositoryFragment"
+            app:destination="@id/repositoryFragment"
             app:popUpTo="@id/homeFragment"
             app:enterAnim="@anim/fade_in"
             app:exitAnim="@anim/fade_out"
             app:popEnterAnim="@anim/fade_in"
             app:popExitAnim="@anim/fade_out"
-            app:popUpToInclusive="true"/>
+            app:popUpToInclusive="false"/>
 
     </fragment>
 
@@ -201,6 +213,7 @@
         android:id="@+id/settingsFragment"
         android:name="com.hasan.jetfasthub.screens.main.settings.SettingsFragment"
         android:label="SettingsFragment" >
+
         <action
             android:id="@+id/action_settingsFragment_to_homeFragment"
             app:destination="@id/homeFragment"
@@ -209,8 +222,10 @@
             app:exitAnim="@anim/fade_out"
             app:popEnterAnim="@anim/fade_in"
             app:popExitAnim="@anim/fade_out"
-            app:popUpToInclusive="true"/>
+            app:popUpToInclusive="false"/>
+
     </fragment>
+
     <fragment
         android:id="@+id/faqFragment"
         android:name="com.hasan.jetfasthub.screens.main.faq.FaqFragment"
@@ -219,37 +234,39 @@
     <fragment
         android:id="@+id/gistsFragment"
         android:name="com.hasan.jetfasthub.screens.main.gists.GistsFragment"
-        android:label="GistsFragment" />
+        android:label="GistsFragment" >
+
+        <action
+            android:id="@+id/action_gistsFragment_to_gistFragment"
+            app:destination="@id/gistFragment" />
+
+    </fragment>
 
     <fragment
         android:id="@+id/organisationsFragment"
         android:name="com.hasan.jetfasthub.screens.main.organisations.OrganisationsFragment"
         android:label="OrganisationsFragment" >
+
         <action
             android:id="@+id/action_organisationsFragment_to_profileFragment"
             app:destination="@id/profileFragment"
-            app:popUpTo="@id/profileFragment"
+            app:popUpTo="@id/organisationsFragment"
             app:enterAnim="@anim/fade_in"
             app:exitAnim="@anim/fade_out"
             app:popEnterAnim="@anim/fade_in"
             app:popExitAnim="@anim/fade_out"
-            app:popUpToInclusive="true"/>
-    </fragment>
-
-    <fragment
-        android:id="@+id/addAccountFragment"
-        android:name="com.hasan.jetfasthub.screens.main.add_account.AddAccountFragment"
-        android:label="AddAccountFragment" >
+            app:popUpToInclusive="false"/>
 
         <action
-            android:id="@+id/action_addAccountFragment_to_homeFragment"
-            app:destination="@id/homeFragment"
+            android:id="@+id/action_organisationsFragment_to_repositoryFragment"
+            app:destination="@id/repositoryFragment"
             app:popUpTo="@id/homeFragment"
             app:enterAnim="@anim/fade_in"
             app:exitAnim="@anim/fade_out"
             app:popEnterAnim="@anim/fade_in"
             app:popExitAnim="@anim/fade_out"
-            app:popUpToInclusive="true"/>
+            app:popUpToInclusive="false"/>
+
     </fragment>
 
     <fragment
@@ -286,7 +303,7 @@
         <action
             android:id="@+id/action_repositoryFragment_to_profileFragment"
             app:destination="@id/profileFragment"
-            app:popUpTo="@id/homeFragment"
+            app:popUpTo="@id/repositoryFragment"
             app:enterAnim="@anim/fade_in"
             app:exitAnim="@anim/fade_out"
             app:popEnterAnim="@anim/fade_in"
@@ -302,6 +319,101 @@
             app:popExitAnim="@anim/fade_out"
             app:popUpToInclusive="false"
             app:destination="@id/repositoryFragment" />
+
+        <action
+            android:id="@+id/action_repositoryFragment_to_commitFragment"
+            app:popUpTo="@id/repositoryFragment"
+            app:enterAnim="@anim/fade_in"
+            app:exitAnim="@anim/fade_out"
+            app:popEnterAnim="@anim/fade_in"
+            app:popExitAnim="@anim/fade_out"
+            app:popUpToInclusive="false"
+            app:destination="@id/commitFragment" />
+
+        <action
+            android:id="@+id/action_repositoryFragment_to_searchFilesFragment"
+            app:popUpTo="@id/repositoryFragment"
+            app:enterAnim="@anim/fade_in"
+            app:exitAnim="@anim/fade_out"
+            app:popEnterAnim="@anim/fade_in"
+            app:popExitAnim="@anim/fade_out"
+            app:popUpToInclusive="false"
+            app:destination="@id/searchFilesFragment" />
+
+        <action
+            android:id="@+id/action_repositoryFragment_to_searchFragment"
+            app:popUpTo="@id/repositoryFragment"
+            app:enterAnim="@anim/fade_in"
+            app:exitAnim="@anim/fade_out"
+            app:popEnterAnim="@anim/fade_in"
+            app:popExitAnim="@anim/fade_out"
+            app:popUpToInclusive="false"
+            app:destination="@id/searchFragment" />
+
+    </fragment>
+
+    <fragment
+        android:id="@+id/commitFragment"
+        android:name="com.hasan.jetfasthub.screens.main.commits.CommitFragment"
+        android:label="CommitFragment" >
+
+        <action
+            android:id="@+id/action_commitFragment_to_profileFragment"
+            app:destination="@id/profileFragment"
+            app:popUpTo="@id/commitFragment"
+            app:enterAnim="@anim/fade_in"
+            app:exitAnim="@anim/fade_out"
+            app:popEnterAnim="@anim/fade_in"
+            app:popExitAnim="@anim/fade_out"
+            app:popUpToInclusive="false"/>
+
+        <action
+            android:id="@+id/action_commitFragment_to_editCommentFragment"
+            app:destination="@id/editCommentFragment"
+            app:popUpTo="@id/commitFragment"
+            app:enterAnim="@anim/fade_in"
+            app:exitAnim="@anim/fade_out"
+            app:popEnterAnim="@anim/fade_in"
+            app:popExitAnim="@anim/fade_out"
+            app:popUpToInclusive="false"/>
+
+    </fragment>
+
+    <fragment
+        android:id="@+id/searchFilesFragment"
+        android:name="com.hasan.jetfasthub.screens.main.search_files.SearchFilesFragment"
+        android:label="SearchFilesFragment" />
+
+    <fragment
+        android:id="@+id/editCommentFragment"
+        android:name="com.hasan.jetfasthub.screens.main.commits.EditCommentFragment"
+        android:label="EditCommentFragment" />
+
+    <fragment
+        android:id="@+id/gistFragment"
+        android:name="com.hasan.jetfasthub.screens.main.gists.GistFragment"
+        android:label="GistFragment" >
+
+        <action
+            android:id="@+id/action_gistFragment_to_profileFragment"
+            app:destination="@id/profileFragment"
+            app:popUpTo="@id/gistFragment"
+            app:enterAnim="@anim/fade_in"
+            app:exitAnim="@anim/fade_out"
+            app:popEnterAnim="@anim/fade_in"
+            app:popExitAnim="@anim/fade_out"
+            app:popUpToInclusive="false"/>
+
+        <action
+            android:id="@+id/action_gistFragment_to_editCommentFragment"
+            app:destination="@id/editCommentFragment"
+            app:popUpTo="@id/gistFragment"
+            app:enterAnim="@anim/fade_in"
+            app:exitAnim="@anim/fade_out"
+            app:popEnterAnim="@anim/fade_in"
+            app:popExitAnim="@anim/fade_out"
+            app:popUpToInclusive="false"/>
+
     </fragment>
 
 </navigation>

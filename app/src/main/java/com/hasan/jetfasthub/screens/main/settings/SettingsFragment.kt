@@ -65,6 +65,7 @@ private fun MainContent(onNavigate: () -> Unit) {
             modifier = Modifier
                 .padding(contentPadding)
                 .fillMaxSize()
+                .background(MaterialTheme.colorScheme.surfaceVariant),
         ) {
 
         }
@@ -79,7 +80,7 @@ private fun TopAppBarContent(
         modifier = Modifier
             .fillMaxWidth()
             .background(Color.White),
-        shadowElevation = 9.dp
+        shadowElevation = 12.dp
     ) {
         Row(
             verticalAlignment = Alignment.CenterVertically,
@@ -93,7 +94,7 @@ private fun TopAppBarContent(
             }
 
             Text(
-                color = Color.Black,
+                color = MaterialTheme.colorScheme.onSurface,
                 modifier = Modifier
                     .weight(1F)
                     .padding(start = 10.dp, end = 10.dp),

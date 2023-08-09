@@ -1,5 +1,6 @@
 package com.hasan.jetfasthub.screens.main.search
 
+import android.content.Context
 import android.os.Bundle
 import android.util.Log
 import android.view.LayoutInflater
@@ -25,7 +26,6 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.Card
-import androidx.compose.material.MaterialTheme
 import androidx.compose.material.Scaffold
 import androidx.compose.material.Text
 import androidx.compose.material3.TextField
@@ -33,13 +33,16 @@ import androidx.compose.material.TopAppBar
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.rememberScaffoldState
+import androidx.compose.material.ripple.LocalRippleTheme
 import androidx.compose.material3.Divider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ScrollableTabRow
 import androidx.compose.material3.Tab
 import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
@@ -58,8 +61,9 @@ import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.core.os.bundleOf
 import androidx.fragment.app.Fragment
-import androidx.navigation.fragment.findNavController
+import androidx.navigation.findNavController
 import com.hasan.jetfasthub.R
 import com.hasan.jetfasthub.data.PreferenceHelper
 import com.hasan.jetfasthub.screens.main.search.models.code_model.CodeItem
@@ -71,6 +75,7 @@ import com.hasan.jetfasthub.screens.main.search.models.repository_model.Reposito
 import com.hasan.jetfasthub.screens.main.search.models.users_model.UserModel
 import com.hasan.jetfasthub.screens.main.search.models.users_model.UsersItem
 import com.hasan.jetfasthub.ui.theme.JetFastHubTheme
+import com.hasan.jetfasthub.ui.theme.RippleCustomTheme
 import com.hasan.jetfasthub.utility.FileSizeCalculator
 import com.hasan.jetfasthub.utility.ParseDateFormat
 import com.skydoves.landscapist.ImageOptions
@@ -80,13 +85,27 @@ import org.koin.androidx.viewmodel.ext.android.viewModel
 class SearchFragment : Fragment() {
 
     private val viewModel: SearchViewModel by viewModel()
+    private lateinit var token: String
+
+    override fun onAttach(context: Context) {
+        super.onAttach(context)
+
+        token = PreferenceHelper.getToken(requireContext())
+        val query = arguments?.getString("repo_topic")
+
+        if (query != null && query != "") {
+            val initialQuery = "topic:\"$query\""
+            viewModel.setInitialQuery(initialQuery)
+            viewModel.searchRepositories(token, initialQuery, 1L)
+            viewModel.searchUsers(token, initialQuery, 1L)
+            viewModel.searchIssues(token, initialQuery, 1L)
+            viewModel.searchCodes(token, initialQuery, 1L)
+        }
+    }
 
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?
     ): View {
-
-        val token = PreferenceHelper.getToken(requireContext())
-        Log.d("ahi3646", "onCreateView: token - $token")
 
         return ComposeView(requireContext()).apply {
             setContent {
@@ -94,9 +113,25 @@ class SearchFragment : Fragment() {
                 JetFastHubTheme {
                     MainContent(
                         state = state,
-                        onListItemClick = { stringResource ->
-                            Toast.makeText(requireContext(), stringResource, Toast.LENGTH_SHORT)
-                                .show()
+                        onListItemClick = { dest, data, extra ->
+                            when (dest) {
+                                -1 -> {
+                                    findNavController().popBackStack()
+                                }
+
+                                R.id.action_searchFragment_to_profileFragment -> {
+                                    val bundle = bundleOf("username" to data)
+                                    findNavController().navigate(dest, bundle)
+                                }
+
+                                R.id.action_searchFragment_to_repositoryFragment -> {
+                                    val bundle = Bundle()
+                                    bundle.putString("repository_owner", data)
+                                    bundle.putString("repository_name", extra)
+                                    findNavController().navigate(dest, bundle)
+                                }
+
+                            }
                         },
                         onSearchClick = { query ->
                             if (query.isEmpty() || query.length < 2)
@@ -123,7 +158,7 @@ class SearchFragment : Fragment() {
 @Composable
 private fun MainContent(
     state: SearchScreenState,
-    onListItemClick: (String) -> Unit,
+    onListItemClick: (Int, String, String?) -> Unit,
     onSearchClick: (String) -> Unit,
     onBackPressed: () -> Unit
 ) {
@@ -131,15 +166,19 @@ private fun MainContent(
     Scaffold(
         scaffoldState = scaffoldState,
         topBar = {
-            TopAppBar(
-                backgroundColor = Color.White,
-                elevation = 0.dp,
-                content = {
-                    TopAppBarContent(
-                        onBackPressed = onBackPressed, onSearchItemClick = onSearchClick
-                    )
-                },
-            )
+            CompositionLocalProvider(LocalRippleTheme provides RippleCustomTheme) {
+                TopAppBar(
+                    backgroundColor = MaterialTheme.colorScheme.surface,
+                    elevation = 0.dp,
+                    content = {
+                        TopAppBarContent(
+                            initialQuery = state.InitialQuery,
+                            onBackPressed = onBackPressed,
+                            onSearchItemClick = onSearchClick
+                        )
+                    },
+                )
+            }
         },
     ) { contentPadding ->
         TabScreen(contentPadding, onListItemClick, state)
@@ -149,7 +188,7 @@ private fun MainContent(
 @Composable
 private fun TabScreen(
     contentPaddingValues: PaddingValues,
-    onListItemClick: (String) -> Unit,
+    onListItemClick: (Int, String, String?) -> Unit,
     state: SearchScreenState
 ) {
     val tabs = listOf("REPOSITORIES", "USERS", "ISSUES", "CODE")
@@ -158,48 +197,88 @@ private fun TabScreen(
         modifier = Modifier
             .padding(contentPaddingValues)
             .fillMaxWidth()
+            .background(MaterialTheme.colorScheme.surface)
     ) {
-        ScrollableTabRow(selectedTabIndex = tabIndex, containerColor = Color.White) {
+        ScrollableTabRow(
+            selectedTabIndex = tabIndex,
+            contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
+        ) {
             tabs.forEachIndexed { index, title ->
                 Tab(
                     text = {
                         when (index) {
                             0 -> {
                                 val count = state.Repositories.data?.total_count
-                                Log.d("ahi3646gg", "TabScreen: $count")
-                                if (count != null)
-                                    Text("$title ($count)")
-                                else Text(title)
+                                val tabName = if (count != null) {
+                                    "$title ($count)"
+                                } else {
+                                    title
+                                }
+                                if (tabIndex == 0) {
+                                    Text(
+                                        tabName,
+                                        color = MaterialTheme.colorScheme.onPrimaryContainer
+                                    )
+                                } else {
+                                    Text(tabName, color = MaterialTheme.colorScheme.outline)
+                                }
                             }
 
                             1 -> {
                                 val count = state.Users.data?.total_count
-                                Log.d("ahi3646gg", "TabScreen: $count")
-                                if (count != null)
-                                    Text("$title ($count)")
-                                else Text(title)
+                                val tabName = if (count != null)
+                                    "$title ($count)"
+                                else title
+
+                                if (tabIndex == 1) {
+                                    Text(
+                                        tabName,
+                                        color = MaterialTheme.colorScheme.onPrimaryContainer
+                                    )
+                                } else {
+                                    Text(tabName, color = MaterialTheme.colorScheme.outline)
+                                }
                             }
 
                             2 -> {
                                 val count = state.Issues.data?.total_count
-                                Log.d("ahi3646gg", "TabScreen: $count")
-                                if (count != null)
-                                    Text("$title ($count)")
-                                else Text(title)
+                                val tabName = if (count != null)
+                                    "$title ($count)"
+                                else title
+
+                                if (tabIndex == 2) {
+                                    Text(
+                                        tabName,
+                                        color = MaterialTheme.colorScheme.onPrimaryContainer
+                                    )
+                                } else {
+                                    Text(tabName, color = MaterialTheme.colorScheme.outline)
+                                }
                             }
 
                             3 -> {
                                 val count = state.Codes.data?.total_count
-                                Log.d("ahi3646gg", "TabScreen: $count")
-                                if (count != null)
-                                    Text("$title ($count)")
-                                else Text(title)
+                                Log.d("ahi3646gg", "TabScreen 3 : $tabIndex")
+                                val tabName = if (count != null)
+                                    "$title ($count)"
+                                else title
+
+                                if (tabIndex == 3) {
+                                    Text(
+                                        tabName,
+                                        color = MaterialTheme.colorScheme.onPrimaryContainer
+                                    )
+                                } else {
+                                    Text(tabName, color = MaterialTheme.colorScheme.outline)
+                                }
                             }
                         }
 
                     },
                     selected = tabIndex == index,
                     onClick = { tabIndex = index },
+                    selectedContentColor = MaterialTheme.colorScheme.onPrimaryContainer,
+                    unselectedContentColor = MaterialTheme.colorScheme.inverseOnSurface
                 )
             }
         }
@@ -235,29 +314,30 @@ private fun TabScreen(
 private fun RepositoriesContent(
     contentPaddingValues: PaddingValues,
     repositories: ResourceWithInitial<RepositoryModel>,
-    onNavigate: (String) -> Unit
+    onNavigate: (Int, String, String?) -> Unit
 ) {
     when (repositories) {
         is ResourceWithInitial.Initial -> {
             Column(
                 modifier = Modifier
                     .fillMaxSize()
-                    .background(Color.White),
+                    .background(MaterialTheme.colorScheme.surfaceVariant),
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.Center
             ) {
-                Text(text = "No search results")
+                Text(text = "No search results", color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
         }
+
         is ResourceWithInitial.Loading -> {
             Column(
                 modifier = Modifier
                     .fillMaxSize()
-                    .background(Color.White),
+                    .background(MaterialTheme.colorScheme.surfaceVariant),
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.Center
             ) {
-                Text(text = "Loading ...")
+                Text(text = "Loading ...", color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
         }
 
@@ -266,7 +346,7 @@ private fun RepositoriesContent(
                 modifier = Modifier
                     .padding(contentPaddingValues)
                     .fillMaxSize()
-                    .background(Color.White),
+                    .background(MaterialTheme.colorScheme.surfaceVariant),
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.Top
             ) {
@@ -280,12 +360,11 @@ private fun RepositoriesContent(
             Column(
                 modifier = Modifier
                     .fillMaxSize()
-                    .background(Color.White),
+                    .background(MaterialTheme.colorScheme.surfaceVariant),
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.Center
             ) {
-                Text(text = "Something went wrong !")
-                Log.d("ahi3646", "Unread: ${repositories.errorMessage}")
+                Text(text = "Can't load data!", color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
         }
     }
@@ -293,15 +372,21 @@ private fun RepositoriesContent(
 
 @Composable
 private fun RepositoryItem(
-    repository: Item, onItemClicked: (String) -> Unit
+    repository: Item, onItemClicked: (Int, String, String?) -> Unit
 ) {
     Card(
         modifier = Modifier
             .fillMaxWidth()
             .clickable(onClick = {
-                onItemClicked(repository.full_name)
+                onItemClicked(
+                    R.id.action_searchFragment_to_repositoryFragment,
+                    repository.owner.login,
+                    repository.name
+                )
             })
-            .padding(4.dp), elevation = 0.dp, backgroundColor = Color.White
+            .padding(4.dp),
+        elevation = 0.dp,
+        backgroundColor = MaterialTheme.colorScheme.surfaceVariant
     ) {
         Row(
             modifier = Modifier
@@ -316,7 +401,14 @@ private fun RepositoryItem(
                 modifier = Modifier
                     .size(48.dp, 48.dp)
                     .size(48.dp, 48.dp)
-                    .clip(CircleShape),
+                    .clip(CircleShape)
+                    .clickable {
+                        onItemClicked(
+                            R.id.action_searchFragment_to_profileFragment,
+                            repository.owner.login,
+                            null
+                        )
+                    },
                 imageOptions = ImageOptions(
                     contentScale = ContentScale.Crop,
                     alignment = Alignment.CenterStart,
@@ -331,8 +423,8 @@ private fun RepositoryItem(
                 Text(
                     text = repository.full_name,
                     modifier = Modifier.padding(0.dp, 0.dp, 12.dp, 0.dp),
-                    color = Color.Black,
-                    style = MaterialTheme.typography.subtitle1,
+                    color = MaterialTheme.colorScheme.onPrimaryContainer,
+                    ///style = MaterialTheme.typography.,
                     maxLines = 2,
                     overflow = TextOverflow.Ellipsis
                 )
@@ -345,51 +437,55 @@ private fun RepositoryItem(
                 ) {
                     Icon(
                         painter = painterResource(id = R.drawable.ic_star_small),
-                        contentDescription = "star icon"
+                        contentDescription = "star icon",
+                        tint = MaterialTheme.colorScheme.onPrimaryContainer
                     )
 
                     Text(
                         text = repository.stargazers_count.toString(),
-                        color = Color.Black,
+                        color = MaterialTheme.colorScheme.onPrimaryContainer,
                         modifier = Modifier.padding(start = 2.dp)
                     )
 
                     Icon(
                         painter = painterResource(id = R.drawable.ic_fork_small),
-                        contentDescription = "star icon"
+                        contentDescription = "star icon",
+                        tint = MaterialTheme.colorScheme.onPrimaryContainer
                     )
 
                     Text(
                         text = repository.forks_count.toString(),
-                        color = Color.Black,
+                        color = MaterialTheme.colorScheme.onPrimaryContainer,
                         modifier = Modifier.padding(start = 2.dp)
                     )
 
                     Icon(
                         painter = painterResource(id = R.drawable.ic_time_small),
-                        contentDescription = "time icon"
+                        contentDescription = "time icon",
+                        tint = MaterialTheme.colorScheme.onPrimaryContainer
                     )
 
                     Text(
                         text = ParseDateFormat.getTimeAgo(repository.updated_at).toString(),
-                        color = Color.Black,
+                        color = MaterialTheme.colorScheme.onPrimaryContainer,
                         modifier = Modifier.padding(start = 2.dp)
                     )
 
                     Icon(
                         painter = painterResource(id = R.drawable.ic_storage_small),
-                        contentDescription = "storage icon"
+                        contentDescription = "storage icon",
+                        tint = MaterialTheme.colorScheme.onPrimaryContainer
                     )
 
                     Text(
                         text = FileSizeCalculator.humanReadableByteCountBin(repository.size.toLong()),
-                        color = Color.Black,
+                        color = MaterialTheme.colorScheme.onPrimaryContainer,
                         modifier = Modifier.padding(start = 2.dp)
                     )
 
                     Text(
                         text = repository.language ?: "",
-                        color = Color.Black,
+                        color = MaterialTheme.colorScheme.onPrimaryContainer,
                         modifier = Modifier.padding(start = 2.dp)
                     )
                 }
@@ -402,29 +498,30 @@ private fun RepositoryItem(
 private fun UsersContent(
     users: ResourceWithInitial<UserModel>,
     contentPaddingValues: PaddingValues,
-    onUsersItemClicked: (String) -> Unit
+    onUsersItemClicked: (Int, String, String?) -> Unit
 ) {
     when (users) {
         is ResourceWithInitial.Initial -> {
             Column(
                 modifier = Modifier
                     .fillMaxSize()
-                    .background(Color.White),
+                    .background(MaterialTheme.colorScheme.surfaceVariant),
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.Center
             ) {
-                Text(text = "No search results")
+                Text(text = "No search results", color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
         }
+
         is ResourceWithInitial.Loading -> {
             Column(
                 modifier = Modifier
                     .fillMaxSize()
-                    .background(Color.White),
+                    .background(MaterialTheme.colorScheme.surfaceVariant),
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.Center
             ) {
-                Text(text = "Loading ...")
+                Text(text = "Loading ...", color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
         }
 
@@ -433,7 +530,7 @@ private fun UsersContent(
                 modifier = Modifier
                     .padding(contentPaddingValues)
                     .fillMaxSize()
-                    .background(Color.White),
+                    .background(MaterialTheme.colorScheme.surfaceVariant),
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.Top
             ) {
@@ -447,12 +544,11 @@ private fun UsersContent(
             Column(
                 modifier = Modifier
                     .fillMaxSize()
-                    .background(Color.White),
+                    .background(MaterialTheme.colorScheme.surfaceVariant),
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.Center
             ) {
-                Text(text = "Something went wrong !")
-                Log.d("ahi3646", "Unread: ${users.errorMessage}")
+                Text(text = "Can't load data!", color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
         }
     }
@@ -460,15 +556,23 @@ private fun UsersContent(
 
 @Composable
 private fun UsersItem(
-    userModel: UsersItem, onUsersItemClicked: (String) -> Unit
+    userModel: UsersItem, onUsersItemClicked: (Int, String, String?) -> Unit
 ) {
     Card(
         modifier = Modifier
             .fillMaxWidth()
-            .clickable(onClick = {
-                onUsersItemClicked(userModel.login)
-            })
-            .padding(4.dp), elevation = 0.dp, backgroundColor = Color.White
+            .clickable(
+                onClick = {
+                    onUsersItemClicked(
+                        R.id.action_searchFragment_to_profileFragment,
+                        userModel.login,
+                        null
+                    )
+                }
+            )
+            .padding(4.dp),
+        elevation = 0.dp,
+        backgroundColor = MaterialTheme.colorScheme.surfaceVariant
     ) {
         Row(
             modifier = Modifier
@@ -498,8 +602,8 @@ private fun UsersItem(
                 Text(
                     text = userModel.login,
                     modifier = Modifier.padding(0.dp, 0.dp, 12.dp, 0.dp),
-                    color = Color.Black,
-                    style = MaterialTheme.typography.subtitle1,
+                    color = MaterialTheme.colorScheme.onPrimaryContainer,
+                    //style = MaterialTheme.typography.subtitle1,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis
                 )
@@ -512,29 +616,30 @@ private fun UsersItem(
 private fun IssuesContent(
     issues: ResourceWithInitial<IssuesModel>,
     contentPaddingValues: PaddingValues,
-    onIssueItemClicked: (String) -> Unit
+    onIssueItemClicked: (Int, String, String?) -> Unit
 ) {
     when (issues) {
         is ResourceWithInitial.Initial -> {
             Column(
                 modifier = Modifier
                     .fillMaxSize()
-                    .background(Color.White),
+                    .background(MaterialTheme.colorScheme.surfaceVariant),
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.Center
             ) {
-                Text(text = "No search results")
+                Text(text = "No search results", color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
         }
+
         is ResourceWithInitial.Loading -> {
             Column(
                 modifier = Modifier
                     .fillMaxSize()
-                    .background(Color.White),
+                    .background(MaterialTheme.colorScheme.surfaceVariant),
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.Center
             ) {
-                Text(text = "Loading ...")
+                Text(text = "Loading ...", color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
         }
 
@@ -543,7 +648,7 @@ private fun IssuesContent(
                 modifier = Modifier
                     .padding(contentPaddingValues)
                     .fillMaxSize()
-                    .background(Color.White),
+                    .background(MaterialTheme.colorScheme.surfaceVariant),
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.Top
             ) {
@@ -557,12 +662,14 @@ private fun IssuesContent(
             Column(
                 modifier = Modifier
                     .fillMaxSize()
-                    .background(Color.White),
+                    .background(MaterialTheme.colorScheme.surfaceVariant),
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.Center
             ) {
-                Text(text = "Something went wrong !")
-                Log.d("ahi3646", "Unread: ${issues.errorMessage}")
+                Text(
+                    text = "Can't load data!",
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
             }
         }
     }
@@ -571,15 +678,21 @@ private fun IssuesContent(
 
 @Composable
 private fun IssuesItem(
-    issuesItem: IssuesItem, onIssueItemClicked: (String) -> Unit
+    issuesItem: IssuesItem, onIssueItemClicked: (Int, String, String?) -> Unit
 ) {
     Card(
         modifier = Modifier
             .fillMaxWidth()
             .clickable(onClick = {
-                onIssueItemClicked(issuesItem.title)
+                onIssueItemClicked(
+                    0,
+                    issuesItem.title,
+                    null
+                )
             })
-            .padding(4.dp), elevation = 0.dp, backgroundColor = Color.White
+            .padding(4.dp),
+        elevation = 0.dp,
+        backgroundColor = MaterialTheme.colorScheme.surfaceVariant
     ) {
         Row(
             modifier = Modifier
@@ -613,8 +726,8 @@ private fun IssuesItem(
                 Text(
                     text = issuesItem.title,
                     modifier = Modifier.padding(0.dp, 0.dp, 12.dp, 0.dp),
-                    color = Color.Black,
-                    style = MaterialTheme.typography.subtitle1,
+                    color = MaterialTheme.colorScheme.onPrimaryContainer,
+                    //style = MaterialTheme.typography.subtitle1,
                     maxLines = 2,
                     overflow = TextOverflow.Ellipsis
                 )
@@ -631,7 +744,7 @@ private fun IssuesItem(
                             append(issuesItem.title + "#")
                             append(issuesItem.number.toString())
                         },
-                        color = Color.Black,
+                        color = MaterialTheme.colorScheme.onPrimaryContainer,
                         modifier = Modifier
                             .padding(start = 2.dp)
                             .weight(1F)
@@ -642,12 +755,13 @@ private fun IssuesItem(
                     if (issuesItem.comments != 0 && issuesItem.comments > 0) {
                         Icon(
                             painter = painterResource(id = R.drawable.ic_comment_small),
-                            contentDescription = "storage icon"
+                            contentDescription = "storage icon",
+                            tint = MaterialTheme.colorScheme.onPrimaryContainer
                         )
 
                         Text(
                             text = issuesItem.comments.toString(),
-                            color = Color.Black,
+                            color = MaterialTheme.colorScheme.onPrimaryContainer,
                             modifier = Modifier.padding(start = 2.dp)
                         )
                     }
@@ -661,18 +775,18 @@ private fun IssuesItem(
 private fun CodeContent(
     codes: ResourceWithInitial<CodeModel>,
     contentPaddingValues: PaddingValues,
-    onCodeItemClicked: (String) -> Unit
+    onCodeItemClicked: (Int, String, String?) -> Unit
 ) {
     when (codes) {
         is ResourceWithInitial.Initial -> {
             Column(
                 modifier = Modifier
                     .fillMaxSize()
-                    .background(Color.White),
+                    .background(MaterialTheme.colorScheme.surfaceVariant),
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.Center
             ) {
-                Text(text = "No search results")
+                Text(text = "No search results", color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
         }
 
@@ -680,11 +794,11 @@ private fun CodeContent(
             Column(
                 modifier = Modifier
                     .fillMaxSize()
-                    .background(Color.White),
+                    .background(MaterialTheme.colorScheme.surfaceVariant),
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.Center
             ) {
-                Text(text = "Loading ...")
+                Text(text = "Loading ...", color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
         }
 
@@ -693,7 +807,7 @@ private fun CodeContent(
                 modifier = Modifier
                     .padding(contentPaddingValues)
                     .fillMaxSize()
-                    .background(Color.White),
+                    .background(MaterialTheme.colorScheme.surfaceVariant),
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.Top
             ) {
@@ -713,12 +827,11 @@ private fun CodeContent(
             Column(
                 modifier = Modifier
                     .fillMaxSize()
-                    .background(Color.White),
+                    .background(MaterialTheme.colorScheme.surfaceVariant),
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.Center
             ) {
-                Text(text = "Something went wrong !")
-                Log.d("ahi3646", "Unread: ${codes.errorMessage}")
+                Text(text = "Can't load data!", color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
         }
     }
@@ -726,15 +839,23 @@ private fun CodeContent(
 
 @Composable
 private fun CodesItem(
-    code: CodeItem, onCodeItemClicked: (String) -> Unit
+    code: CodeItem, onCodeItemClicked: (Int, String, String?) -> Unit
 ) {
     Card(
         modifier = Modifier
             .wrapContentHeight()
-            .clickable(onClick = {
-                onCodeItemClicked(code.name)
-            })
-            .padding(4.dp), elevation = 0.dp, backgroundColor = Color.White
+            .clickable(
+                onClick = {
+                    onCodeItemClicked(
+                        0,
+                        code.name,
+                        null
+                    )
+                }
+            )
+            .padding(4.dp),
+        elevation = 0.dp,
+        backgroundColor = MaterialTheme.colorScheme.surfaceVariant
     ) {
 
         Column(
@@ -748,8 +869,8 @@ private fun CodesItem(
             Text(
                 text = code.repository.full_name,
                 modifier = Modifier.padding(0.dp, 0.dp, 12.dp, 0.dp),
-                color = Color.Black,
-                style = MaterialTheme.typography.subtitle1,
+                color = MaterialTheme.colorScheme.onPrimaryContainer,
+                //style = MaterialTheme.typography.subtitle1,
                 maxLines = 2,
                 overflow = TextOverflow.Ellipsis
             )
@@ -758,7 +879,7 @@ private fun CodesItem(
 
             Text(
                 text = code.name,
-                color = Color.Black,
+                color = MaterialTheme.colorScheme.onPrimaryContainer,
                 modifier = Modifier
                     .padding(start = 2.dp)
             )
@@ -771,23 +892,25 @@ private fun CodesItem(
 
 @Composable
 private fun TopAppBarContent(
+    initialQuery: String,
     onSearchItemClick: (String) -> Unit,
     onBackPressed: () -> Unit
 ) {
     Row(
         modifier = Modifier
-            .fillMaxWidth()
-            .background(Color.White),
+            .fillMaxWidth(),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.SpaceBetween
     ) {
-        IconButton(onClick = {
-            onBackPressed()
-        }) {
-            Icon(Icons.Filled.ArrowBack, contentDescription = "Back button")
-        }
+        var text by remember { mutableStateOf(initialQuery) }
 
-        var text by remember { mutableStateOf("") }
+        IconButton(onClick = { onBackPressed() }) {
+            Icon(
+                Icons.Filled.ArrowBack,
+                contentDescription = "Back button",
+                tint = MaterialTheme.colorScheme.onSurface
+            )
+        }
 
         TextField(
             value = text,
@@ -796,7 +919,13 @@ private fun TopAppBarContent(
             },
             textStyle = TextStyle(fontSize = 16.sp),
             label = null,
-            placeholder = { Text(text = "Search", fontSize = 16.sp) },
+            placeholder = {
+                Text(
+                    text = "Search here ...",
+                    fontSize = 16.sp,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+            },
             trailingIcon = {
                 if (text != "") {
                     IconButton(onClick = { text = "" }) {
@@ -821,7 +950,8 @@ private fun TopAppBarContent(
         IconButton(onClick = { onSearchItemClick(text) }) {
             Icon(
                 painter = painterResource(id = R.drawable.ic_search),
-                contentDescription = "search icon"
+                contentDescription = "search icon",
+                tint = MaterialTheme.colorScheme.onSurface
             )
         }
     }

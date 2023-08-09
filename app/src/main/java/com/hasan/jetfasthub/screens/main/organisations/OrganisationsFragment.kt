@@ -1,11 +1,13 @@
 package com.hasan.jetfasthub.screens.main.organisations
 
+import android.content.Context
 import android.content.Intent
 import android.net.Uri
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.widget.Toast
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
@@ -43,7 +45,7 @@ import androidx.compose.material3.Tab
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -61,8 +63,9 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
+import androidx.core.os.bundleOf
 import androidx.fragment.app.Fragment
-import androidx.navigation.fragment.findNavController
+import androidx.navigation.findNavController
 import com.hasan.jetfasthub.R
 import com.hasan.jetfasthub.data.PreferenceHelper
 import com.hasan.jetfasthub.screens.main.organisations.model.OrganisationMemberModel
@@ -81,41 +84,62 @@ import org.koin.androidx.viewmodel.ext.android.viewModel
 class OrganisationsFragment : Fragment() {
 
     private val organisationsViewModel: OrganisationsViewModel by viewModel()
+    private lateinit var token: String
+
+    override fun onAttach(context: Context) {
+        super.onAttach(context)
+
+        token = PreferenceHelper.getToken(requireContext())
+
+        val organisation = arguments?.getString("organisation")
+
+        if (organisation != null) {
+            organisationsViewModel.getOrg(token = token, organisation = organisation)
+            organisationsViewModel.getOrganisationMembers(token = token, organisation, page = 1)
+            organisationsViewModel.getOrganisationRepositories(
+                token = token,
+                organisation = organisation,
+                type = "all",
+                page = 1
+            )
+        } else {
+            Toast.makeText(context, "Something went wrong!", Toast.LENGTH_SHORT).show()
+        }
+
+    }
 
     override fun onCreateView(
-        inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?
+        inflater: LayoutInflater,
+        container: ViewGroup?,
+        savedInstanceState: Bundle?
     ): View {
-
-        val organisation = arguments?.getString("profile_data") ?: ""
-        val token = PreferenceHelper.getToken(requireContext())
-
-        organisationsViewModel.getOrganisationMembers(token = token, organisation, 1)
-        organisationsViewModel.getOrganisationRepositories(
-            token = token,
-            organisation = organisation,
-            type = "all",
-            page = 1
-        )
-        organisationsViewModel.getOrg(token, organisation)
 
         return ComposeView(requireContext()).apply {
             setContent {
                 val state by organisationsViewModel.state.collectAsState()
                 JetFastHubTheme {
-                    MainContent(state = state,
-                        organisation = organisation,
-                        onRecyclerItemClick = { dest, data ->
-                            if (data != null) {
-                                val bundle = Bundle()
-                                bundle.putString("home_data", data)
-                                findNavController().navigate(dest, bundle)
-                            } else if (dest == -1) {
-                                findNavController().popBackStack()
-                            } else {
-                                findNavController().navigate(dest)
+                    MainContent(
+                        state = state,
+                        onNavigate = { dest, data, extra ->
+                            when (dest) {
+                                -1 -> {
+                                    findNavController().popBackStack()
+                                }
+
+                                R.id.action_organisationsFragment_to_profileFragment -> {
+                                    val bundle = bundleOf("username" to data)
+                                    findNavController().navigate(dest, bundle)
+                                }
+
+                                R.id.action_organisationsFragment_to_repositoryFragment -> {
+                                    val bundle = Bundle()
+                                    bundle.putString("home_data", data)
+                                    bundle.putString("home_extra", extra)
+                                    findNavController().navigate(dest, bundle)
+                                }
                             }
                         },
-                        onAction = {action, data ->
+                        onAction = { action, data ->
                             when (action) {
                                 "share" -> {
                                     val context = requireContext()
@@ -160,21 +184,24 @@ class OrganisationsFragment : Fragment() {
 @Composable
 private fun MainContent(
     state: OrganisationScreenState,
-    organisation: String,
-    onRecyclerItemClick: (Int, String?) -> Unit,
+    onNavigate: (Int, String?, String?) -> Unit,
     onAction: (String, String) -> Unit
 ) {
     val scaffoldState = rememberScaffoldState()
-    Scaffold(scaffoldState = scaffoldState, topBar = {
-        TopAppBar(
-            backgroundColor = Color.White,
-            elevation = 0.dp,
-            content = {
-                TopAppBarContent(onRecyclerItemClick, organisation, onAction)
-            },
-        )
-    }) { paddingValues ->
-        TabScreen(paddingValues, state, onRecyclerItemClick, onAction )
+
+    Scaffold(
+        scaffoldState = scaffoldState,
+        topBar = {
+            TopAppBar(
+                backgroundColor = Color.White,
+                elevation = 0.dp,
+                content = {
+                    TopAppBarContent(onNavigate, state.Organisation, onAction)
+                },
+            )
+        }
+    ) { paddingValues ->
+        TabScreen(paddingValues, state, onNavigate, onAction)
     }
 }
 
@@ -182,11 +209,11 @@ private fun MainContent(
 private fun TabScreen(
     paddingValues: PaddingValues,
     state: OrganisationScreenState,
-    onRecyclerItemClick: (Int, String?) -> Unit,
+    onNavigate: (Int, String?, String?) -> Unit,
     onAction: (String, String) -> Unit
 ) {
 
-    var tabIndex by remember { mutableStateOf(0) }
+    var tabIndex by remember { mutableIntStateOf(0) }
     val tabs = listOf("OVERVIEW", "REPOSITORIES", "PEOPLE")
 
     Column(
@@ -200,9 +227,9 @@ private fun TabScreen(
                 Tab(
                     text = {
                         if (tabIndex == index) {
-                            androidx.compose.material3.Text(title, color = Color.Blue)
+                            Text(title, color = Color.Blue)
                         } else {
-                            androidx.compose.material3.Text(title, color = Color.Black)
+                            Text(title, color = Color.Black)
                         }
                     },
                     selected = tabIndex == index,
@@ -213,17 +240,17 @@ private fun TabScreen(
 
         when (tabIndex) {
             0 -> {
-                Overview(state.Organisation, onAction, onRecyclerItemClick)
+                Overview(state.Organisation, onAction)
             }
 
             1 -> {
                 Repositories(
-                    orgRepos = state.OrganisationRepos, onRecyclerItemClick = onRecyclerItemClick
+                    orgRepos = state.OrganisationRepos, onNavigate = onNavigate
                 )
             }
 
             2 -> {
-                People(state = state.OrganisationMembers, onRecyclerItemClick = onRecyclerItemClick)
+                People(state = state.OrganisationMembers, onNavigate = onNavigate)
             }
         }
     }
@@ -233,7 +260,6 @@ private fun TabScreen(
 private fun Overview(
     org: Resource<OrganisationModel>,
     onAction: (String, String) -> Unit,
-    onRecyclerItemClick: (Int, String?) -> Unit
 ) {
 
     when (org) {
@@ -354,12 +380,14 @@ private fun Overview(
                             )
                             Text(
                                 text = org.data.email,
-                                modifier = Modifier.padding(start = 16.dp).clickable(
-                                    indication = null,
-                                    interactionSource = remember { MutableInteractionSource() }
-                                ) {
-                                    onAction("share", org.data.email )
-                                },
+                                modifier = Modifier
+                                    .padding(start = 16.dp)
+                                    .clickable(
+                                        indication = null,
+                                        interactionSource = remember { MutableInteractionSource() }
+                                    ) {
+                                        onAction("share", org.data.email)
+                                    },
                                 color = Color.Blue
                             )
                         }
@@ -393,7 +421,7 @@ private fun Overview(
                                         indication = null,
                                         interactionSource = remember { MutableInteractionSource() }
                                     ) {
-                                      onAction("browser", org.data.blog )
+                                        onAction("browser", org.data.blog)
                                     },
                                 color = Color.Blue
                             )
@@ -478,7 +506,7 @@ private fun Overview(
 @Composable
 private fun Repositories(
     orgRepos: Resource<OrganisationsRepositoryModel>,
-    onRecyclerItemClick: (Int, String?) -> Unit
+    onNavigate: (Int, String, String) -> Unit
 ) {
     when (orgRepos) {
         is Resource.Loading -> {
@@ -503,7 +531,8 @@ private fun Repositories(
             ) {
                 itemsIndexed(orgRepos.data!!) { index, memberModel ->
                     OrganisationRepoItem(
-                        memberModel, onRepositoryItemClicked = onRecyclerItemClick
+                        repository = memberModel,
+                        onNavigate = onNavigate
                     )
                     if (index < orgRepos.data.lastIndex) {
                         Divider(
@@ -531,14 +560,21 @@ private fun Repositories(
 
 @Composable
 fun OrganisationRepoItem(
-    repository: OrganisationsRepositoryModelItem, onRepositoryItemClicked: (Int, String) -> Unit
+    repository: OrganisationsRepositoryModelItem,
+    onNavigate: (Int, String, String) -> Unit
 ) {
     Card(
         modifier = Modifier
             .fillMaxWidth()
-            .clickable(onClick = {
-                onRepositoryItemClicked(0, repository.full_name)
-            })
+            .clickable(
+                onClick = {
+                    onNavigate(
+                        R.id.action_organisationsFragment_to_repositoryFragment,
+                        repository.owner.login,
+                        repository.name
+                    )
+                }
+            )
             .padding(4.dp), elevation = 0.dp, backgroundColor = Color.White
     ) {
         Row(
@@ -632,7 +668,8 @@ fun OrganisationRepoItem(
 
 @Composable
 private fun People(
-    state: Resource<OrganisationMemberModel>, onRecyclerItemClick: (Int, String?) -> Unit
+    state: Resource<OrganisationMemberModel>,
+    onNavigate: (Int, String?, String?) -> Unit
 ) {
     when (state) {
         is Resource.Loading -> {
@@ -657,7 +694,8 @@ private fun People(
             ) {
                 itemsIndexed(state.data!!) { index, memberModel ->
                     OrganisationMemberItemCard(
-                        memberModel, onItemClicked = onRecyclerItemClick
+                        memberModel = memberModel,
+                        onNavigate = onNavigate
                     )
                     if (index < state.data.lastIndex) {
                         Divider(
@@ -685,15 +723,17 @@ private fun People(
 
 @Composable
 fun OrganisationMemberItemCard(
-    memberModel: OrganisationMemberModelItem, onItemClicked: (Int, String?) -> Unit
+    memberModel: OrganisationMemberModelItem,
+    onNavigate: (Int, String?, String?) -> Unit
 ) {
     Card(
         modifier = Modifier
             .fillMaxWidth()
             .clickable(onClick = {
-                onItemClicked(
+                onNavigate(
                     R.id.action_organisationsFragment_to_profileFragment,
-                    memberModel.login
+                    memberModel.login,
+                    null
                 )
             })
             .padding(4.dp), elevation = 0.dp, backgroundColor = Color.White
@@ -738,37 +778,100 @@ fun OrganisationMemberItemCard(
     }
 }
 
-
 @Composable
 private fun TopAppBarContent(
-    onBackPressed: (Int, String?) -> Unit,
-    organisation: String,
+    onNavigate: (Int, String?, String?) -> Unit,
+    state: Resource<OrganisationModel>,
     onAction: (String, String) -> Unit
 ) {
-    Row(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(Color.White),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.SpaceBetween
-    ) {
-        IconButton(onClick = {
-            onBackPressed(-1, null)
-        }) {
-            Icon(Icons.Filled.ArrowBack, contentDescription = "Back button")
+    when (state) {
+        is Resource.Loading -> {
+            Row(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(Color.White),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                IconButton(onClick = {
+                    onNavigate(-1, null, null)
+                }) {
+                    Icon(Icons.Filled.ArrowBack, contentDescription = "Back button")
+                }
+
+                Text(
+                    color = Color.Black,
+                    modifier = Modifier
+                        .weight(1F)
+                        .padding(start = 10.dp, end = 10.dp),
+                    text = "",
+                    style = MaterialTheme.typography.titleMedium,
+                )
+
+                IconButton(onClick = { }) {
+                    Icon(Icons.Filled.Share, contentDescription = "Share")
+                }
+            }
         }
 
-        Text(
-            color = Color.Black,
-            modifier = Modifier
-                .weight(1F)
-                .padding(start = 10.dp, end = 10.dp),
-            text = organisation,
-            style = MaterialTheme.typography.titleMedium,
-        )
+        is Resource.Success -> {
+            val organisation = state.data!!.login
 
-        IconButton(onClick = { onAction("share", organisation) }) {
-            Icon(Icons.Filled.Share, contentDescription = "Share")
+            Row(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(Color.White),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                IconButton(onClick = {
+                    onNavigate(-1, null, null)
+                }) {
+                    Icon(Icons.Filled.ArrowBack, contentDescription = "Back button")
+                }
+
+                Text(
+                    color = Color.Black,
+                    modifier = Modifier
+                        .weight(1F)
+                        .padding(start = 10.dp, end = 10.dp),
+                    text = organisation,
+                    style = MaterialTheme.typography.titleMedium,
+                )
+
+                IconButton(onClick = { onAction("share", organisation) }) {
+                    Icon(Icons.Filled.Share, contentDescription = "Share")
+                }
+            }
+        }
+
+        is Resource.Failure -> {
+            Row(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(Color.White),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                IconButton(onClick = {
+                    onNavigate(-1, null, null)
+                }) {
+                    Icon(Icons.Filled.ArrowBack, contentDescription = "Back button")
+                }
+
+                Text(
+                    color = Color.Black,
+                    modifier = Modifier
+                        .weight(1F)
+                        .padding(start = 10.dp, end = 10.dp),
+                    text = "",
+                    style = MaterialTheme.typography.titleMedium,
+                )
+
+                IconButton(onClick = { }) {
+                    Icon(Icons.Filled.Share, contentDescription = "Share")
+                }
+            }
         }
     }
 }

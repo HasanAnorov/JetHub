@@ -4,7 +4,7 @@ import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.hasan.jetfasthub.data.HomeRepository
-import com.hasan.jetfasthub.screens.main.home.authenticated_user.AuthenticatedUser
+import com.hasan.jetfasthub.screens.main.home.authenticated_user_model.AuthenticatedUser
 import com.hasan.jetfasthub.screens.main.home.received_events_model.ReceivedEventsModel
 import com.hasan.jetfasthub.screens.main.home.user_model.GitHubUser
 import com.hasan.jetfasthub.utility.Resource
@@ -30,19 +30,23 @@ class HomeViewModel(
         }
     }
 
-    fun getAuthenticatedUser(token: String): Flow<AuthenticatedUser> = callbackFlow{
+    fun getAuthenticatedUser(token: String): Flow<AuthenticatedUser> = callbackFlow {
         viewModelScope.launch {
             try {
                 repository.getAuthenticatedUser(token).let { authenticatedUser ->
-                    if(authenticatedUser.isSuccessful){
+                    if (authenticatedUser.isSuccessful) {
                         trySend(authenticatedUser.body()!!)
-                    }else{
+                    } else {
                         _state.update {
-                            it.copy(user = Resource.Failure(authenticatedUser.errorBody().toString()))
+                            it.copy(
+                                user = Resource.Failure(
+                                    authenticatedUser.errorBody().toString()
+                                )
+                            )
                         }
                     }
                 }
-            }catch (e: Exception){
+            } catch (e: Exception) {
                 _state.update {
                     it.copy(user = Resource.Failure(e.message.toString()))
                 }
@@ -54,39 +58,57 @@ class HomeViewModel(
         }
     }
 
-
     fun getUser(token: String, username: String) {
         viewModelScope.launch(Dispatchers.IO) {
-            repository.getUser(token, username).let { gitHubUser ->
-                if (gitHubUser.isSuccessful) {
-                    _state.update {
-                        it.copy(user = Resource.Success(gitHubUser.body()!!))
+            try {
+                repository.getUser(token, username).let { gitHubUser ->
+                    if (gitHubUser.isSuccessful) {
+                        _state.update {
+                            it.copy(user = Resource.Success(gitHubUser.body()!!))
+                        }
+                    } else {
+                        _state.update {
+                            it.copy(user = Resource.Failure(gitHubUser.errorBody().toString()))
+                        }
                     }
-                } else {
-                    _state.update {
-                        it.copy(user = Resource.Failure(gitHubUser.errorBody().toString()))
-                    }
+                }
+            } catch (e: Exception) {
+                _state.update {
+                    it.copy(user = Resource.Failure(e.message.toString()))
                 }
             }
         }
     }
 
-
     fun getReceivedEvents(token: String, username: String) {
         viewModelScope.launch(Dispatchers.IO) {
-            repository.getReceivedUserEvents(token, username).let { receivedEvents ->
-                if (receivedEvents.isSuccessful) {
-                    _state.update {
-                        it.copy(receivedEventsState = ReceivedEventsState.Success(receivedEvents.body()!!))
-                    }
-                } else {
-                    _state.update {
-                        it.copy(
-                            receivedEventsState = ReceivedEventsState.Error(
-                                receivedEvents.errorBody().toString()
+            try {
+                repository.getReceivedUserEvents(token, username).let { receivedEvents ->
+                    if (receivedEvents.isSuccessful) {
+                        _state.update {
+                            it.copy(
+                                receivedEventsState = ReceivedEventsState.Success(
+                                    receivedEvents.body()!!
+                                )
                             )
-                        )
+                        }
+                    } else {
+                        _state.update {
+                            it.copy(
+                                receivedEventsState = ReceivedEventsState.Error(
+                                    receivedEvents.errorBody().toString()
+                                )
+                            )
+                        }
                     }
+                }
+            } catch (e: Exception) {
+                _state.update {
+                    it.copy(
+                        receivedEventsState = ReceivedEventsState.Error(
+                            e.message.toString()
+                        )
+                    )
                 }
             }
         }

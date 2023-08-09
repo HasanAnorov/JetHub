@@ -1,7 +1,7 @@
 package com.hasan.jetfasthub.data
 
 import android.content.Context
-import com.hasan.jetfasthub.networking.RetrofitInstance
+import com.hasan.jetfasthub.networking.RestClient
 import com.hasan.jetfasthub.screens.main.search.models.code_model.CodeModel
 import com.hasan.jetfasthub.screens.main.search.models.issues_model.IssuesModel
 import com.hasan.jetfasthub.screens.main.search.models.repository_model.RepositoryModel
@@ -18,7 +18,9 @@ interface SearchRepository {
     ): Response<RepositoryModel>
 
     suspend fun searchUsers(token: String, query: String, page: Long): Response<UserModel>
+
     suspend fun searchIssues(token: String, query: String, page: Long): Response<IssuesModel>
+
     suspend fun searchCodes(token: String, query: String, page: Long): Response<CodeModel>
 
 }
@@ -31,7 +33,7 @@ class SearchRepositoryImpl(private val context: Context) : SearchRepository {
         query: String,
         page: Long
     ): Response<RepositoryModel> {
-        return RetrofitInstance(context).gitHubService.searchRepositories(
+        return RestClient(context).searchService.searchRepositories(
             authToken = "Bearer ${Constants.PERSONAL_ACCESS_TOKEN}",
             query = query,
             page = page
@@ -43,7 +45,7 @@ class SearchRepositoryImpl(private val context: Context) : SearchRepository {
         query: String,
         page: Long
     ): Response<UserModel> {
-        return RetrofitInstance(context).gitHubService.searchUsers(
+        return RestClient(context).searchService.searchUsers(
             authToken = "Bearer ${Constants.PERSONAL_ACCESS_TOKEN}",
             query = query,
             page = page
@@ -55,7 +57,7 @@ class SearchRepositoryImpl(private val context: Context) : SearchRepository {
         query: String,
         page: Long
     ): Response<IssuesModel> {
-        return RetrofitInstance(context).gitHubService.searchIssues(
+        return RestClient(context).searchService.searchIssues(
             authToken = "Bearer ${Constants.PERSONAL_ACCESS_TOKEN}",
             query = query,
             page = page,
@@ -67,7 +69,7 @@ class SearchRepositoryImpl(private val context: Context) : SearchRepository {
         query: String,
         page: Long
     ): Response<CodeModel> {
-        return RetrofitInstance(context = context).gitHubService.searchCodes(
+        return RestClient(context = context).searchService.searchCodes(
             authToken = "Bearer ${Constants.PERSONAL_ACCESS_TOKEN}",
             query = query,
             page = page

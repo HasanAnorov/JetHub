@@ -1,10 +1,13 @@
 package com.hasan.jetfasthub.screens.main.repository
 
 import android.util.Log
+import androidx.compose.animation.core.updateTransition
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.hasan.jetfasthub.data.Repository
+import com.hasan.jetfasthub.data.download.Downloader
 import com.hasan.jetfasthub.screens.main.repository.models.branch_model.BranchModel
+import com.hasan.jetfasthub.screens.main.repository.models.branches_model.BranchesModel
 import com.hasan.jetfasthub.screens.main.repository.models.commits_model.CommitsModel
 import com.hasan.jetfasthub.screens.main.repository.models.file_models.FilesModel
 import com.hasan.jetfasthub.screens.main.repository.models.forks_model.ForksModel
@@ -13,9 +16,9 @@ import com.hasan.jetfasthub.screens.main.repository.models.license_model.License
 import com.hasan.jetfasthub.screens.main.repository.models.releases_model.ReleasesModel
 import com.hasan.jetfasthub.screens.main.repository.models.releases_model.ReleasesModelItem
 import com.hasan.jetfasthub.screens.main.repository.models.repo_contributor_model.Contributors
-import com.hasan.jetfasthub.screens.main.repository.models.repo_model.License
 import com.hasan.jetfasthub.screens.main.repository.models.repo_model.RepoModel
 import com.hasan.jetfasthub.screens.main.repository.models.repo_subscription_model.RepoSubscriptionModel
+import com.hasan.jetfasthub.screens.main.repository.models.release_download_model.ReleaseDownloadModel
 import com.hasan.jetfasthub.screens.main.repository.models.stargazers_model.StargazersModel
 import com.hasan.jetfasthub.screens.main.repository.models.subscriptions_model.SubscriptionsModel
 import com.hasan.jetfasthub.screens.main.repository.models.tags_model.TagsModel
@@ -27,14 +30,34 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.callbackFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
-import okio.EOFException
 
-class RepositoryViewModel(private val repository: Repository) : ViewModel() {
+class RepositoryViewModel(
+    private val repository: Repository,
+    private val downloader: Downloader
+) : ViewModel() {
 
     private var _state: MutableStateFlow<RepositoryScreenState> = MutableStateFlow(
         RepositoryScreenState()
     )
     val state = _state.asStateFlow()
+
+    fun downloadRelease(releaseDownloadModel: ReleaseDownloadModel) {
+        viewModelScope.launch {
+            downloader.downloadRelease(releaseDownloadModel)
+        }
+    }
+
+    fun downloadRepo(url: String, message: String) {
+        viewModelScope.launch {
+            downloader.downloadRepo(url, message)
+        }
+    }
+
+    fun downloadFile(url: String, message: String) {
+        viewModelScope.launch {
+            downloader.downloadFile(url, message)
+        }
+    }
 
 
     fun onBottomBarItemClicked(repositoryScreen: RepositoryScreens) {
@@ -55,17 +78,17 @@ class RepositoryViewModel(private val repository: Repository) : ViewModel() {
                 repository.getRepo(token, owner, repo).let { repo ->
                     if (repo.isSuccessful) {
                         _state.update {
-                            it.copy(repo = Resource.Success(repo.body()!!))
+                            it.copy(Repository = Resource.Success(repo.body()!!))
                         }
                     } else {
                         _state.update {
-                            it.copy(repo = Resource.Failure(repo.errorBody().toString()))
+                            it.copy(Repository = Resource.Failure(repo.errorBody().toString()))
                         }
                     }
                 }
             } catch (e: Exception) {
                 _state.update {
-                    it.copy(repo = Resource.Failure(e.message.toString()))
+                    it.copy(Repository = Resource.Failure(e.message.toString()))
                 }
             }
         }
@@ -179,30 +202,63 @@ class RepositoryViewModel(private val repository: Repository) : ViewModel() {
         }
     }
 
-    fun getBranches(token: String, owner: String, repo: String): Flow<BranchModel> = callbackFlow {
+    fun getBranches(token: String, owner: String, repo: String): Flow<BranchesModel> =
+        callbackFlow {
+            viewModelScope.launch {
+                try {
+                    repository.getBranches(token, owner, repo).let { branches ->
+                        if (branches.isSuccessful) {
+                            trySend(branches.body()!!)
+                            _state.update {
+                                it.copy(Branches = Resource.Success(branches.body()!!))
+                            }
+                        } else {
+                            _state.update {
+                                it.copy(
+                                    Branches = Resource.Failure(
+                                        branches.errorBody().toString()
+                                    )
+                                )
+                            }
+                        }
+                    }
+                } catch (e: Exception) {
+                    _state.update {
+                        it.copy(Branches = Resource.Failure(e.message.toString()))
+                    }
+                }
+            }
+            awaitClose {
+                channel.close()
+                Log.d("callback_ahi", "callback stop : ")
+            }
+        }
+
+    fun getBranch(token: String, repo: String, owner: String, branch: String) {
+        _state.update { 
+            it.copy(
+                RepoDownloadLink = Resource.Loading()
+            )
+        }
         viewModelScope.launch {
             try {
-                repository.getBranches(token, owner, repo).let { branches ->
-                    if (branches.isSuccessful) {
-                        trySend(branches.body()!!)
+                repository.getBranch(token, owner, repo, branch).let { branch ->
+                    if (branch.isSuccessful) {
                         _state.update {
-                            it.copy(Branches = Resource.Success(branches.body()!!))
+                            it.copy(Branch = Resource.Success(branch.body()!!))
                         }
+                        updateDownloadLink(Resource.Success(branch.body()!!._links.html))
                     } else {
                         _state.update {
-                            it.copy(Branches = Resource.Failure(branches.errorBody().toString()))
+                            it.copy(Branch = Resource.Failure(branch.errorBody().toString()))
                         }
                     }
                 }
             } catch (e: Exception) {
                 _state.update {
-                    it.copy(Branches = Resource.Failure(e.message.toString()))
+                    it.copy(Branch = Resource.Failure(e.message.toString()))
                 }
             }
-        }
-        awaitClose {
-            channel.close()
-            Log.d("callback_ahi", "callback stop : ")
         }
     }
 
@@ -236,7 +292,6 @@ class RepositoryViewModel(private val repository: Repository) : ViewModel() {
     }
 
     fun isWatchingRepo(token: String, owner: String, repo: String) {
-        Log.d("ahi3646", "isWatchingRepo: triggered ")
         viewModelScope.launch {
             try {
                 repository.isWatchingRepo(
@@ -261,22 +316,6 @@ class RepositoryViewModel(private val repository: Repository) : ViewModel() {
             }
         }
     }
-
-//    fun changeSubscriptionStatus(status: Boolean) {
-//        _state.update {
-//            it.copy(
-//                isWatching = status
-//            )
-//        }
-//    }
-//
-//    fun changeStarringStatus(status: Boolean) {
-//        _state.update {
-//            it.copy(
-//                isStarring = status
-//            )
-//        }
-//    }
 
     fun watchRepo(token: String, owner: String, repo: String): Flow<RepoSubscriptionModel> =
         callbackFlow {
@@ -389,7 +428,6 @@ class RepositoryViewModel(private val repository: Repository) : ViewModel() {
     }
 
     fun isStarringRepo(token: String, owner: String, repo: String) {
-        Log.d("ahi3646", "isWatchingRepo: triggered ")
         viewModelScope.launch {
             try {
                 repository.checkStarring(
@@ -424,8 +462,6 @@ class RepositoryViewModel(private val repository: Repository) : ViewModel() {
                             it.copy(isStarring = true)
                         }
                         trySend(true)
-                    } else {
-                        trySend(false)
                     }
                 }
             } catch (e: Exception) {
@@ -452,6 +488,7 @@ class RepositoryViewModel(private val repository: Repository) : ViewModel() {
                     }
                 }
             } catch (e: Exception) {
+                trySend(false)
                 Log.d("ahi3646", "starRepo: ${e.message.toString()} ")
             }
         }
@@ -497,7 +534,7 @@ class RepositoryViewModel(private val repository: Repository) : ViewModel() {
                 repository.forkRepo(token, owner, repo).let { response ->
                     if (response.code() == 202) {
                         _state.update {
-                            it.copy(hasForked = true)
+                            it.copy(HasForked = true)
                         }
                         trySend(true)
                     } else {
@@ -505,8 +542,8 @@ class RepositoryViewModel(private val repository: Repository) : ViewModel() {
                     }
                 }
             } catch (e: Exception) {
-                Log.d("ahi3646", "forkRepo: ${e.message} ")
                 trySend(false)
+                Log.d("ahi3646", "forkRepo: ${e.message} ")
             }
         }
         awaitClose {
@@ -567,7 +604,6 @@ class RepositoryViewModel(private val repository: Repository) : ViewModel() {
         }
     }
 
-
     fun getLicense(token: String, owner: String, repo: String) {
         viewModelScope.launch {
             try {
@@ -594,34 +630,71 @@ class RepositoryViewModel(private val repository: Repository) : ViewModel() {
         }
     }
 
-    fun updateInitialBranch(branch: String){
+    fun updateFilesRef(ref: String) {
         _state.update {
-            it.copy(initialBranch = branch)
+            it.copy(FilesRef = ref)
+        }
+    }
+
+    fun updateCommitsRef(ref: String){
+        _state.update {
+            it.copy(CommitsRef = ref)
+        }
+    }
+
+    fun updatePaths(paths: List<String>){
+        _state.update {
+            it.copy(
+                Paths = paths
+            )
+        }
+    }
+
+    fun updateDownloadLink(link: Resource<String>){
+        _state.update {
+            it.copy(
+                RepoDownloadLink = link
+            )
+        }
+    }
+
+    fun setFields(owner: String, repo: String){
+        _state.update {
+            it.copy(
+                RepoOwner = owner,
+                RepoName = repo
+            )
         }
     }
 
 }
 
 data class RepositoryScreenState(
+    val RepoOwner: String = "",
+    val RepoName: String = "",
     val selectedBottomBarItem: RepositoryScreens = RepositoryScreens.Code,
-    val repo: Resource<RepoModel> = Resource.Loading(),
+    val Repository: Resource<RepoModel> = Resource.Loading(),
     val Contributors: Resource<Contributors> = Resource.Loading(),
     val Releases: Resource<ReleasesModel> = Resource.Loading(),
     val currentSheet: BottomSheetScreens = BottomSheetScreens.RepositoryInfoSheet,
     val ReadmeHtml: Resource<String> = Resource.Loading(),
     val RepositoryFiles: Resource<FilesModel> = Resource.Loading(),
-    val Branches: Resource<BranchModel> = Resource.Loading(),
+    val Branches: Resource<BranchesModel> = Resource.Loading(),
     val Commits: Resource<CommitsModel> = Resource.Loading(),
     val isWatching: Boolean = false,
     val Watchers: Resource<SubscriptionsModel> = Resource.Loading(),
     val Stargazers: Resource<StargazersModel> = Resource.Loading(),
     val isStarring: Boolean = false,
     val Forks: Resource<ForksModel> = Resource.Loading(),
-    val hasForked: Boolean = false,
+    val HasForked: Boolean = false,
     val License: Resource<LicenseModel> = Resource.Loading(),
     val Labels: Resource<LabelsModel> = Resource.Loading(),
     val Tags: Resource<TagsModel> = Resource.Loading(),
-    val initialBranch: String = "main"
+    val Branch: Resource<BranchModel> = Resource.Loading(),
+    val FilesRef: String = "main",
+    val CommitsRef: String = "main",
+    val Paths: List<String> = listOf(""),
+    val RepoDownloadLink: Resource<String> = Resource.Loading()
 )
 
 sealed interface BottomSheetScreens {
@@ -629,6 +702,8 @@ sealed interface BottomSheetScreens {
     object RepositoryInfoSheet : BottomSheetScreens
 
     class ReleaseItemSheet(val releaseItem: ReleasesModelItem) : BottomSheetScreens
+
+    class RepoDownloadSheet( val url: Resource<String>) : BottomSheetScreens
 
     object ForkSheet : BottomSheetScreens
 

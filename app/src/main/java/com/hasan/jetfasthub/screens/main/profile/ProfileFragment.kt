@@ -1,17 +1,15 @@
 package com.hasan.jetfasthub.screens.main.profile
 
+import android.content.Context
 import android.content.Intent
 import android.net.Uri
 import android.os.Bundle
-import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.widget.Toast
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.gestures.Orientation
-import androidx.compose.foundation.gestures.rememberScrollableState
-import androidx.compose.foundation.gestures.scrollable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -45,6 +43,7 @@ import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Share
 import androidx.compose.material.rememberScaffoldState
 import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Divider
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -57,7 +56,6 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -68,7 +66,6 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.ComposeView
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.SpanStyle
@@ -80,6 +77,7 @@ import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.content.ContextCompat
+import androidx.core.os.bundleOf
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.flowWithLifecycle
@@ -93,7 +91,7 @@ import com.hasan.jetfasthub.screens.main.profile.model.followers_model.Followers
 import com.hasan.jetfasthub.screens.main.profile.model.followers_model.FollowersModelItem
 import com.hasan.jetfasthub.screens.main.profile.model.following_model.FollowingModel
 import com.hasan.jetfasthub.screens.main.profile.model.following_model.FollowingModelItem
-import com.hasan.jetfasthub.screens.main.profile.model.gist_model.GistModel
+import com.hasan.jetfasthub.screens.main.profile.model.gist_model.GistsModel
 import com.hasan.jetfasthub.screens.main.profile.model.gist_model.GistModelItem
 import com.hasan.jetfasthub.screens.main.profile.model.org_model.OrgModel
 import com.hasan.jetfasthub.screens.main.profile.model.org_model.OrgModelItem
@@ -117,38 +115,54 @@ class ProfileFragment : Fragment() {
 
     private val profileViewModel: ProfileViewModel by viewModel()
 
+    private lateinit var token: String
+    private var startIndex: Int = 0
+
+    override fun onAttach(context: Context) {
+        super.onAttach(context)
+
+        token = PreferenceHelper.getToken(requireContext())
+        val authUser = PreferenceHelper.getAuthenticatedUsername(context)
+
+        val username = arguments?.getString("username")
+        val extra = arguments?.getString("start_index") ?: "0"
+
+        if (username != null) {
+
+            profileViewModel.setUserName(username, authUser)
+
+            profileViewModel.getUser(token, username)
+            profileViewModel.getUserOrganisations(token, username)
+            profileViewModel.getUserEvents(token, username)
+            profileViewModel.getUserRepositories(token, username)
+            profileViewModel.getUserStarredRepos(token, username, 1)
+            profileViewModel.getUserFollowings(token, username, 1)
+            profileViewModel.getUserFollowers(token, username, 1)
+            profileViewModel.getUserGists(token, username, 1)
+            profileViewModel.getFollowStatus(token, username)
+
+            startIndex = try {
+                extra.toInt()
+            } catch (e: Exception) {
+                0
+            }
+
+        } else {
+            Toast.makeText(context, "Can't identify a user!", Toast.LENGTH_SHORT).show()
+        }
+    }
+
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?
     ): View {
-
-        val extra = arguments?.getString("home_extra") ?: "0"
-        val username = arguments?.getString("home_data") ?: ""
-        Log.d("ahi3646", "onCreateView profile: $username -- $extra ")
-        val startIndex = try {
-            extra.toInt()
-        } catch (e: Exception) {
-            0
-        }
-
-        val token = PreferenceHelper.getToken(requireContext())
-
-        profileViewModel.getUser(token, username)
-        profileViewModel.getUserOrganisations(token, username)
-        profileViewModel.getUserEvents(token, username)
-        profileViewModel.getUserRepositories(token, username)
-        profileViewModel.getUserStarredRepos(token, username, 1)
-        profileViewModel.getUserFollowings(token, username, 1)
-        profileViewModel.getUserFollowers(token, username, 1)
-        profileViewModel.getUserGists(token, username, 1)
-        profileViewModel.getFollowStatus(token, username)
 
         return ComposeView(requireContext()).apply {
             setContent {
 
                 val state by profileViewModel.state.collectAsState()
                 JetFastHubTheme {
-                    MainContent(startIndex = startIndex,
-                        username = username,
+                    MainContent(
+                        startIndex = startIndex,
                         state = state,
                         onAction = { action, data ->
                             when (action) {
@@ -181,70 +195,123 @@ class ProfileFragment : Fragment() {
                                 }
 
                                 "isUserBlocked" -> {
-                                    profileViewModel.isUserBlocked(token, username)
+                                    profileViewModel.isUserBlocked(token, state.Username)
                                 }
 
                                 "block" -> {
-                                    profileViewModel.blockUser(token, username)
+                                    profileViewModel.blockUser(token, state.Username)
                                         .flowWithLifecycle(lifecycle, Lifecycle.State.STARTED)
                                         .onEach {
-                                            Log.d("ahi3646", "onCreateView block: $it ")
+                                            if (it) {
+                                                Toast.makeText(
+                                                    requireContext(),
+                                                    "Blocked",
+                                                    Toast.LENGTH_SHORT
+                                                ).show()
+                                            } else {
+                                                Toast.makeText(
+                                                    requireContext(),
+                                                    "Unable to process action",
+                                                    Toast.LENGTH_SHORT
+                                                ).show()
+                                            }
                                         }.launchIn(lifecycleScope)
                                 }
 
                                 "unblock" -> {
-                                    profileViewModel.unblockUser(token, username)
+                                    profileViewModel.unblockUser(token, state.Username)
                                         .flowWithLifecycle(lifecycle, Lifecycle.State.STARTED)
                                         .onEach {
-                                            Log.d("ahi3646", "onCreateView unblock: $it ")
+                                            if (it) {
+                                                Toast.makeText(
+                                                    requireContext(),
+                                                    "Unblocked",
+                                                    Toast.LENGTH_SHORT
+                                                ).show()
+                                            } else {
+                                                Toast.makeText(
+                                                    requireContext(),
+                                                    "Unable to process action",
+                                                    Toast.LENGTH_SHORT
+                                                ).show()
+                                            }
                                         }.launchIn(lifecycleScope)
                                 }
                             }
                         },
-                        onNavigate = { dest, data ->
-                            if (dest == -1) {
-                                findNavController().popBackStack()
-                            } else if (dest == 0) {
-                                val bundle = Bundle()
-                                if (data != null) {
-                                    bundle.putString("home_data", data)
+                        onNavigate = { dest, data, extra ->
+                            when (dest) {
+                                -1 -> {
+                                    findNavController().popBackStack()
                                 }
-                                findNavController().navigate(
-                                    R.id.action_profileFragment_self,
-                                    bundle
-                                )
-                            } else {
-                                val bundle = Bundle()
-                                if (data != null) {
-                                    bundle.putString("profile_data", data)
+
+                                R.id.action_profileFragment_to_gistFragment -> {
+                                    val bundle = Bundle()
+                                    bundle.putString("gist_id", data)
+                                    bundle.putString("gist_owner", extra)
+                                    findNavController().navigate(dest, bundle)
                                 }
-                                findNavController().navigate(dest, bundle)
+
+                                R.id.action_profileFragment_to_repositoryFragment -> {
+                                    val bundle = Bundle()
+                                    bundle.putString("repository_name", data)
+                                    bundle.putString("repository_owner", extra)
+                                    findNavController().navigate(dest, bundle)
+                                }
+
+                                R.id.action_profileFragment_self -> {
+                                    val bundle = bundleOf("username" to data)
+                                    findNavController().navigate(dest, bundle)
+                                }
+
+                                R.id.action_profileFragment_to_organisationsFragment -> {
+                                    val bundle = bundleOf("organisation" to data)
+                                    findNavController().navigate(dest, bundle)
+                                }
                             }
                         },
                         onFollowClicked = {
-                            profileViewModel.followUser(token, username)
+                            profileViewModel.followUser(token, state.Username)
                                 .flowWithLifecycle(lifecycle, Lifecycle.State.STARTED).onEach {
                                     if (it) {
-                                        Log.d("ahi3646", "onCreateView follow: onEach - true ")
+                                        Toast.makeText(
+                                            requireContext(),
+                                            "Followed",
+                                            Toast.LENGTH_SHORT
+                                        ).show()
                                     } else {
-                                        Log.d("ahi3646", "onCreateView follow: onEach - false ")
+                                        Toast.makeText(
+                                            requireContext(),
+                                            "Unable to process action",
+                                            Toast.LENGTH_SHORT
+                                        ).show()
                                     }
                                 }.launchIn(lifecycleScope)
                         },
                         onUnfollowClicked = {
-                            profileViewModel.unfollowUser(token, username)
+                            profileViewModel.unfollowUser(token, state.Username)
                                 .flowWithLifecycle(lifecycle, Lifecycle.State.STARTED).onEach {
                                     if (it) {
-                                        Log.d("ahi3646", "onCreateView unfollow: onEach - true ")
+                                        Toast.makeText(
+                                            requireContext(),
+                                            "Unfollowed",
+                                            Toast.LENGTH_SHORT
+                                        ).show()
                                     } else {
-                                        Log.d("ahi3646", "onCreateView unfollow: onEach - false ")
+                                        Toast.makeText(
+                                            requireContext(),
+                                            "Unable to process action",
+                                            Toast.LENGTH_SHORT
+                                        ).show()
                                     }
                                 }.launchIn(lifecycleScope)
-                        })
+                        }
+                    )
                 }
             }
         }
     }
+
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -253,71 +320,78 @@ private fun MainContent(
     startIndex: Int,
     state: ProfileScreenState,
     onAction: (String, String) -> Unit,
-    onNavigate: (Int, String?) -> Unit,
-    username: String,
+    onNavigate: (Int, String?, String?) -> Unit,
     onFollowClicked: () -> Unit,
     onUnfollowClicked: () -> Unit
 ) {
     val scaffoldState = rememberScaffoldState()
     var showMenu by remember { mutableStateOf(false) }
-    val authUser = PreferenceHelper.getAuthenticatedUsername(LocalContext.current)
 
     Scaffold(
         scaffoldState = scaffoldState,
         topBar = {
-            TopAppBar(title = {
-                Text(
-                    color = Color.Black,
-                    modifier = Modifier.padding(start = 10.dp, end = 10.dp),
-                    text = username,
-                    style = MaterialTheme.typography.titleLarge,
-                )
-            }, navigationIcon = {
-                IconButton(onClick = {
-                    onNavigate(-1, null)
-                }) {
-                    Icon(Icons.Filled.ArrowBack, contentDescription = "Back button")
-                }
-            }, actions = {
-                IconButton(onClick = {
-                    onAction("share", username)
-                }) {
-                    Icon(Icons.Filled.Share, contentDescription = "Share")
-                }
-
-                if (username != authUser) {
+            TopAppBar(
+                title = {
+                    Text(
+                        color = MaterialTheme.colorScheme.onSurface,
+                        modifier = Modifier.padding(start = 10.dp, end = 10.dp),
+                        text = state.Username,
+                        style = MaterialTheme.typography.titleLarge,
+                    )
+                },
+                navigationIcon = {
                     IconButton(onClick = {
-                        onAction("isUserBlocked", username)
-                        showMenu = !showMenu
+                        onNavigate(-1, null, null)
                     }) {
-                        Icon(Icons.Filled.MoreVert, contentDescription = "more option")
+                        Icon(Icons.Filled.ArrowBack, contentDescription = "Back button")
                     }
-                }
+                },
+                actions = {
+                    IconButton(onClick = {
+                        onAction("share", state.Username)
+                    }) {
+                        Icon(Icons.Filled.Share, contentDescription = "Share")
+                    }
 
-                DropdownMenu(expanded = showMenu, onDismissRequest = { showMenu = false }) {
-
-                    if (state.isUserBlocked) {
-                        DropdownMenuItem(onClick = {
-                            onAction("unblock", username)
-                            showMenu = false
+                    if (!state.isMe()) {
+                        IconButton(onClick = {
+                            onAction("isUserBlocked", state.Username)
+                            showMenu = !showMenu
                         }) {
-                            Text(text = "Unblock")
-                        }
-                    } else {
-                        DropdownMenuItem(onClick = {
-                            onAction("block", username)
-                            showMenu = false
-                        }) {
-                            Text(text = "Block")
+                            Icon(Icons.Filled.MoreVert, contentDescription = "more option")
                         }
                     }
 
+                    DropdownMenu(expanded = showMenu, onDismissRequest = { showMenu = false }) {
+
+                        if (state.isUserBlocked) {
+                            DropdownMenuItem(onClick = {
+                                onAction("unblock", state.Username)
+                                showMenu = false
+                            }) {
+                                Text(
+                                    text = "Unblock",
+                                    color = MaterialTheme.colorScheme.onPrimaryContainer
+                                )
+                            }
+                        } else {
+                            DropdownMenuItem(onClick = {
+                                onAction("block", state.Username)
+                                showMenu = false
+                            }) {
+                                Text(
+                                    text = "Block",
+                                    color = MaterialTheme.colorScheme.onPrimaryContainer
+                                )
+                            }
+                        }
+
+                    }
                 }
-            })
+            )
         },
     ) { contentPadding ->
         TabScreen(
-            username = username,
             startIndex = startIndex,
             contentPaddingValues = contentPadding,
             state = state,
@@ -331,12 +405,11 @@ private fun MainContent(
 
 @Composable
 fun TabScreen(
-    username: String,
     startIndex: Int,
     contentPaddingValues: PaddingValues,
     state: ProfileScreenState,
     onAction: (String, String) -> Unit,
-    onNavigate: (Int, String?) -> Unit,
+    onNavigate: (Int, String?, String?) -> Unit,
     onFollowClicked: () -> Unit,
     onUnfollowClicked: () -> Unit,
 ) {
@@ -349,29 +422,51 @@ fun TabScreen(
         modifier = Modifier
             .padding(contentPaddingValues)
             .fillMaxWidth()
+            .background(MaterialTheme.colorScheme.surface)
     ) {
-        ScrollableTabRow(selectedTabIndex = tabIndex, containerColor = Color.White) {
+        ScrollableTabRow(
+            selectedTabIndex = tabIndex,
+            contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
+        ) {
             tabs.forEachIndexed { index, title ->
                 if (title == "STARRED") {
                     val count = state.UserStarredRepositories.data?.size.toString()
+                    val tabName =
+                        if (count.isNotEmpty() || count != "null") "$title ($count)" else title
                     Tab(
-                        text = { Text("$title ($count)") },
+                        text = {
+                            if (tabIndex == index) {
+                                Text(tabName, color = MaterialTheme.colorScheme.onPrimaryContainer)
+                            } else {
+                                Text(tabName, color = MaterialTheme.colorScheme.outline)
+                            }
+                        },
                         selected = tabIndex == index,
                         onClick = { tabIndex = index },
+                        selectedContentColor = MaterialTheme.colorScheme.onPrimaryContainer,
+                        unselectedContentColor = MaterialTheme.colorScheme.inverseOnSurface
                     )
                 } else {
                     Tab(
-                        text = { Text(title) },
+                        text = {
+                            if (tabIndex == index) {
+                                Text(title, color = MaterialTheme.colorScheme.onPrimaryContainer)
+                            } else {
+                                Text(title, color = MaterialTheme.colorScheme.outline)
+                            }
+                        },
                         selected = tabIndex == index,
                         onClick = { tabIndex = index },
+                        selectedContentColor = MaterialTheme.colorScheme.onPrimaryContainer,
+                        unselectedContentColor = MaterialTheme.colorScheme.inverseOnSurface
                     )
                 }
             }
         }
+
         when (tabIndex) {
             0 -> OverviewScreen(
-                username = username,
-                overviewScreenState = state.OverviewScreenState,
+                state = state,
                 isFollowing = state.isFollowing,
                 organisation = state.UserOrganisations,
                 onFollowClicked = onFollowClicked,
@@ -382,27 +477,27 @@ fun TabScreen(
             )
 
             1 -> FeedScreen(
-                state.UserEvents, onFeedsItemClicked = onNavigate
+                state.UserEvents, onNavigate = onNavigate
             )
 
             2 -> RepositoriesScreen(
-                state.UserRepositories, onRepositoryItemClicked = onNavigate
+                state.UserRepositories, onNavigate = onNavigate
             )
 
             3 -> StarredScreen(
-                state.UserStarredRepositories, onStarredRepoItemClicked = onNavigate
+                state.UserStarredRepositories, onNavigate = onNavigate
             )
 
             4 -> GistsScreen(
-                state.UserGists, onGistItemClick = onNavigate
+                state.UserGists, onNavigate = onNavigate
             )
 
             5 -> FollowersScreen(
-                state.UserFollowers, onFollowersItemClicked = onNavigate
+                state.UserFollowers, onNavigate = onNavigate
             )
 
             6 -> FollowingScreen(
-                state.UserFollowings, onFollowingsItemClicked = onNavigate
+                state.UserFollowings, onNavigate = onNavigate
             )
 
         }
@@ -412,47 +507,40 @@ fun TabScreen(
 
 @Composable
 fun OverviewScreen(
-    username: String,
-    overviewScreenState: UserOverviewScreen,
+    state: ProfileScreenState,
     isFollowing: Boolean,
     organisation: Resource<OrgModel>,
     onFollowClicked: () -> Unit,
     onUnfollowClicked: () -> Unit,
     onTabChange: (Int) -> Unit,
-    onNavigate: (Int, String?) -> Unit,
+    onNavigate: (Int, String?, String?) -> Unit,
     onAction: (String, String) -> Unit
 ) {
 
-    val authUser = PreferenceHelper.getAuthenticatedUsername(LocalContext.current)
-
-    when (overviewScreenState) {
+    when (state.OverviewScreenState) {
         is UserOverviewScreen.Loading -> {
             Column(
                 modifier = Modifier
                     .fillMaxSize()
                     .verticalScroll(rememberScrollState())
-                    .background(MaterialTheme.colorScheme.primaryContainer),
+                    .background(MaterialTheme.colorScheme.surfaceVariant),
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.Center,
             ) {
-                Text(text = "Loading ...")
+                Text(text = "Loading ...", color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
         }
 
         is UserOverviewScreen.Content -> {
-            var offset by remember { mutableFloatStateOf(0f) }
+
+            //var offset by remember { mutableFloatStateOf(0f) }
+            val user = state.OverviewScreenState.user
 
             Column(
                 modifier = Modifier
                     .fillMaxSize()
-                    .scrollable(orientation = Orientation.Vertical,
-                        // Scrollable state: describes how to consume
-                        // scrolling delta and update offset
-                        state = rememberScrollableState { delta ->
-                            offset += delta
-                            delta
-                        })
-                    .background(Color.White),
+                    .verticalScroll(rememberScrollState())
+                    .background(MaterialTheme.colorScheme.surfaceVariant),
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.Top
             ) {
@@ -465,7 +553,7 @@ fun OverviewScreen(
 
                     GlideImage(
                         imageModel = {
-                            overviewScreenState.user.avatar_url
+                            user.avatar_url
                         }, // loading a network image using an URL.
                         modifier = Modifier
                             .size(80.dp, 80.dp)
@@ -482,9 +570,9 @@ fun OverviewScreen(
                     Column(modifier = Modifier.align(Alignment.CenterVertically)) {
 
                         Text(
-                            text = overviewScreenState.user.name ?: "",
+                            text = user.name ?: "",
                             modifier = Modifier.padding(0.dp, 0.dp, 12.dp, 0.dp),
-                            color = Color.Black,
+                            color = MaterialTheme.colorScheme.onSecondaryContainer,
                             fontWeight = FontWeight.Bold,
                             style = androidx.compose.material.MaterialTheme.typography.subtitle1
                         )
@@ -492,22 +580,23 @@ fun OverviewScreen(
                         Spacer(modifier = Modifier.height(8.dp))
 
                         Text(
-                            text = overviewScreenState.user.login,
+                            text = user.login,
                             modifier = Modifier.padding(0.dp, 0.dp, 12.dp, 0.dp),
-                            color = Color.Black,
+                            color = MaterialTheme.colorScheme.onSecondaryContainer,
                             style = androidx.compose.material.MaterialTheme.typography.caption
                         )
 
                     }
                 }
 
-                if (overviewScreenState.user.bio != null) {
+                if (user.bio != null) {
                     Text(
-                        text = overviewScreenState.user.bio,
+                        text = user.bio,
                         modifier = Modifier
                             .fillMaxWidth()
                             .padding(start = 16.dp),
-                        textAlign = TextAlign.Start
+                        textAlign = TextAlign.Start,
+                        color = MaterialTheme.colorScheme.onSecondaryContainer,
                     )
                 }
 
@@ -523,8 +612,9 @@ fun OverviewScreen(
                         onTabChange(6)
                     }) {
                         Text(
-                            text = "Following - ${overviewScreenState.user.following}",
-                            modifier = Modifier.padding(8.dp)
+                            text = "Following - ${user.following}",
+                            modifier = Modifier.padding(8.dp),
+                            color = MaterialTheme.colorScheme.onSecondaryContainer,
                         )
                     }
 
@@ -539,23 +629,30 @@ fun OverviewScreen(
                         onTabChange(5)
                     }) {
                         Text(
-                            text = "Followers - ${overviewScreenState.user.followers}",
-                            modifier = Modifier.padding(12.dp)
+                            text = "Followers - ${user.followers}",
+                            modifier = Modifier.padding(12.dp),
+                            color = MaterialTheme.colorScheme.onSecondaryContainer
                         )
                     }
                 }
-                if (authUser != username) {
+
+                if (!state.isMe()) {
                     if (isFollowing) {
                         Button(
                             onClick = { onUnfollowClicked() },
-                            modifier = Modifier.padding(start = 24.dp, end = 24.dp)
+                            modifier = Modifier.padding(start = 24.dp, end = 24.dp),
+                            colors = ButtonDefaults.buttonColors(contentColor = MaterialTheme.colorScheme.secondaryContainer),
                         ) {
                             Icon(
                                 painter = painterResource(id = R.drawable.ic_unfollow),
-                                contentDescription = "unfollow button"
+                                contentDescription = "unfollow button",
+                                tint = MaterialTheme.colorScheme.onSecondaryContainer,
                             )
                             Spacer(modifier = Modifier.width(8.dp))
-                            Text(text = "Unfollow")
+                            Text(
+                                text = "Unfollow",
+                                color = MaterialTheme.colorScheme.onSecondaryContainer
+                            )
                         }
                     } else {
                         Button(
@@ -564,15 +661,19 @@ fun OverviewScreen(
                         ) {
                             Icon(
                                 painter = painterResource(id = R.drawable.ic_follow),
-                                contentDescription = "follow button"
+                                contentDescription = "follow button",
+                                tint = MaterialTheme.colorScheme.onSecondaryContainer,
                             )
                             Spacer(modifier = Modifier.width(8.dp))
-                            Text(text = "Follow")
+                            Text(
+                                text = "Follow",
+                                color = MaterialTheme.colorScheme.onSecondaryContainer
+                            )
                         }
                     }
                 }
 
-                if (overviewScreenState.user.company != null) {
+                if (user.company != null) {
                     Row(
                         modifier = Modifier
                             .padding(16.dp)
@@ -582,11 +683,13 @@ fun OverviewScreen(
                     ) {
                         Icon(
                             painter = painterResource(id = R.drawable.ic_group),
-                            contentDescription = "Corporation"
+                            contentDescription = "Corporation",
+                            tint = MaterialTheme.colorScheme.onSecondaryContainer,
                         )
                         Text(
-                            text = overviewScreenState.user.company,
-                            modifier = Modifier.padding(start = 16.dp)
+                            text = user.company,
+                            modifier = Modifier.padding(start = 16.dp),
+                            color = MaterialTheme.colorScheme.onSecondaryContainer,
                         )
                     }
 
@@ -598,7 +701,7 @@ fun OverviewScreen(
                     )
                 }
 
-                if (overviewScreenState.user.location != null) {
+                if (user.location != null) {
                     Row(
                         modifier = Modifier
                             .padding(16.dp)
@@ -608,12 +711,14 @@ fun OverviewScreen(
                     ) {
                         Icon(
                             imageVector = Icons.Filled.LocationOn,
-                            contentDescription = "Corporation"
+                            contentDescription = "Corporation",
+                            tint = MaterialTheme.colorScheme.onSecondaryContainer,
                         )
 
                         Text(
-                            text = overviewScreenState.user.location,
-                            modifier = Modifier.padding(start = 16.dp)
+                            text = user.location,
+                            modifier = Modifier.padding(start = 16.dp),
+                            color = MaterialTheme.colorScheme.onSecondaryContainer,
                         )
                     }
 
@@ -625,7 +730,7 @@ fun OverviewScreen(
                     )
                 }
 
-                if (overviewScreenState.user.email != null) {
+                if (user.email != null) {
                     Row(
                         modifier = Modifier
                             .padding(16.dp)
@@ -635,14 +740,15 @@ fun OverviewScreen(
                     ) {
                         Icon(
                             painter = painterResource(id = R.drawable.ic_email),
-                            contentDescription = "Email"
+                            contentDescription = "Email",
+                            tint = MaterialTheme.colorScheme.onSecondaryContainer,
                         )
-                        Text(text = overviewScreenState.user.email.toString(),
+                        Text(text = user.email.toString(),
                             modifier = Modifier
                                 .padding(start = 16.dp)
                                 .clickable(indication = null,
                                     interactionSource = remember { MutableInteractionSource() }) {
-                                    onAction("share", overviewScreenState.user.email.toString())
+                                    onAction("share", user.email.toString())
                                 },
                             color = Color.Blue
                         )
@@ -656,7 +762,7 @@ fun OverviewScreen(
                     )
                 }
 
-                if (overviewScreenState.user.blog != null && overviewScreenState.user.blog.toString()
+                if (user.blog != null && user.blog.toString()
                         .isNotEmpty()
                 ) {
                     Row(
@@ -668,14 +774,15 @@ fun OverviewScreen(
                     ) {
                         Icon(
                             painter = painterResource(id = R.drawable.ic_insert_link),
-                            contentDescription = "Corporation"
+                            contentDescription = "Corporation",
+                            tint = MaterialTheme.colorScheme.onSecondaryContainer,
                         )
-                        Text(text = overviewScreenState.user.blog.toString(),
+                        Text(text = user.blog.toString(),
                             modifier = Modifier
                                 .padding(start = 16.dp)
                                 .clickable(indication = null,
                                     interactionSource = remember { MutableInteractionSource() }) {
-                                    onAction("browser", overviewScreenState.user.blog.toString())
+                                    onAction("browser", user.blog.toString())
                                 },
 
                             color = Color.Blue
@@ -690,7 +797,7 @@ fun OverviewScreen(
                     )
                 }
 
-                if (overviewScreenState.user.created_at != null) {
+                if (user.created_at != null) {
                     Row(
                         modifier = Modifier
                             .padding(16.dp)
@@ -700,11 +807,14 @@ fun OverviewScreen(
                     ) {
                         Icon(
                             painter = painterResource(id = R.drawable.ic_time),
-                            contentDescription = "Corporation"
+                            contentDescription = "Corporation",
+                            tint = MaterialTheme.colorScheme.onSecondaryContainer,
                         )
                         Text(
-                            text = ParseDateFormat.getTimeAgo(overviewScreenState.user.created_at)
-                                .toString(), modifier = Modifier.padding(start = 16.dp)
+                            text = ParseDateFormat.getTimeAgo(user.created_at)
+                                .toString(),
+                            modifier = Modifier.padding(start = 16.dp),
+                            color = MaterialTheme.colorScheme.onSecondaryContainer,
                         )
                     }
                 }
@@ -717,14 +827,17 @@ fun OverviewScreen(
                                 modifier = Modifier
                                     .padding(start = 16.dp)
                                     .align(Alignment.Start),
-                                fontSize = 18.sp
+                                fontSize = 18.sp,
+                                color = MaterialTheme.colorScheme.onSecondaryContainer,
                             )
 
                             LazyHorizontalGrid(
-                                rows = GridCells.Fixed(2),
+                                rows = GridCells.Fixed(1),
                                 modifier = Modifier
+                                    .padding(top = 6.dp)
                                     .fillMaxWidth()
-                                    .background(Color.White),
+                                    .height(100.dp)
+                                    .background(MaterialTheme.colorScheme.surfaceVariant),
                                 horizontalArrangement = Arrangement.Start,
                                 verticalArrangement = Arrangement.Center
                             ) {
@@ -736,7 +849,10 @@ fun OverviewScreen(
                     }
 
                     else -> {
-                        Text(text = "Cannot load organisations!")
+                        Text(
+                            text = "Cannot load organisations!",
+                            color = MaterialTheme.colorScheme.onSecondaryContainer,
+                        )
                     }
                 }
 
@@ -778,25 +894,28 @@ fun OverviewScreen(
             Column(
                 modifier = Modifier
                     .fillMaxSize()
-                    .background(MaterialTheme.colorScheme.primaryContainer),
+                    .background(MaterialTheme.colorScheme.surfaceVariant),
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.Center
             ) {
-                Text(text = "Something went wrong !")
+                Text(text = "Can't load data!", color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
         }
     }
 }
 
 @Composable
-fun OrganisationItem(organisation: OrgModelItem, onNavigate: (Int, String?) -> Unit) {
-    Column(verticalArrangement = Arrangement.Center,
+fun OrganisationItem(organisation: OrgModelItem, onNavigate: (Int, String?, String?) -> Unit) {
+    Column(
+        verticalArrangement = Arrangement.Center,
         horizontalAlignment = Alignment.CenterHorizontally,
         modifier = Modifier
             .padding(4.dp)
             .clickable {
                 onNavigate(
-                    R.id.action_profileFragment_to_organisationsFragment, organisation.login
+                    R.id.action_profileFragment_to_organisationsFragment,
+                    organisation.login,
+                    null
                 )
             }) {
 
@@ -813,20 +932,26 @@ fun OrganisationItem(organisation: OrgModelItem, onNavigate: (Int, String?) -> U
             )
         )
         Spacer(modifier = Modifier.height(9.dp))
-        Text(text = organisation.login, textAlign = TextAlign.Center)
+        Text(
+            text = organisation.login,
+            textAlign = TextAlign.Center,
+            color = MaterialTheme.colorScheme.onPrimaryContainer
+        )
     }
 }
 
 @Composable
-fun FeedScreen(userEvents: Resource<UserEvents>, onFeedsItemClicked: (Int, String) -> Unit) {
+fun FeedScreen(userEvents: Resource<UserEvents>, onNavigate: (Int, String, String?) -> Unit) {
     when (userEvents) {
         is Resource.Loading -> {
             Column(
-                modifier = Modifier.fillMaxSize(),
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(MaterialTheme.colorScheme.surfaceVariant),
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.Center
             ) {
-                Text(text = "Loading ...")
+                Text(text = "Loading ...", color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
         }
 
@@ -834,12 +959,12 @@ fun FeedScreen(userEvents: Resource<UserEvents>, onFeedsItemClicked: (Int, Strin
             LazyColumn(
                 modifier = Modifier
                     .fillMaxSize()
-                    .background(Color.White),
+                    .background(MaterialTheme.colorScheme.surfaceVariant),
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.Top
             ) {
                 itemsIndexed(userEvents.data!!) { index, UserEventsItem ->
-                    FeedsItem(onFeedsItemClicked = onFeedsItemClicked, UserEventsItem)
+                    FeedsItem(onFeedsItemClicked = onNavigate, UserEventsItem)
                     if (index < userEvents.data.lastIndex) {
                         Divider(
                             color = Color.Gray,
@@ -852,11 +977,13 @@ fun FeedScreen(userEvents: Resource<UserEvents>, onFeedsItemClicked: (Int, Strin
 
         is Resource.Failure -> {
             Column(
-                modifier = Modifier.fillMaxSize(),
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(MaterialTheme.colorScheme.surfaceVariant),
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.Center
             ) {
-                Text(text = "Something went wrong !")
+                Text(text = "Can't load data!", color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
         }
     }
@@ -864,15 +991,17 @@ fun FeedScreen(userEvents: Resource<UserEvents>, onFeedsItemClicked: (Int, Strin
 
 @Composable
 fun FeedsItem(
-    onFeedsItemClicked: (Int, String) -> Unit, userEventsItem: UserEventsItem
+    onFeedsItemClicked: (Int, String, String?) -> Unit, userEventsItem: UserEventsItem
 ) {
     Card(
         modifier = Modifier
             .fillMaxWidth()
             .clickable(onClick = {
-                onFeedsItemClicked(0, userEventsItem.actor.login)
+                onFeedsItemClicked(0, userEventsItem.actor.login, null)
             })
-            .padding(4.dp), elevation = 0.dp, backgroundColor = Color.White
+            .padding(4.dp),
+        elevation = 0.dp,
+        backgroundColor = MaterialTheme.colorScheme.surfaceVariant
     ) {
         Row(
             modifier = Modifier
@@ -895,7 +1024,7 @@ fun FeedsItem(
                         append(userEventsItem.repo.name)
                     },
                     modifier = Modifier.padding(0.dp, 0.dp, 12.dp, 0.dp),
-                    color = Color.Black,
+                    color = MaterialTheme.colorScheme.onPrimaryContainer,
                     style = androidx.compose.material.MaterialTheme.typography.subtitle1,
                     maxLines = 2,
                     overflow = TextOverflow.Ellipsis
@@ -907,7 +1036,7 @@ fun FeedsItem(
                     Text(
                         text = userEventsItem.payload.commits.size.toString() + " commits",
                         modifier = Modifier.padding(0.dp, 0.dp, 12.dp, 0.dp),
-                        color = Color.Black,
+                        color = MaterialTheme.colorScheme.onPrimaryContainer,
                         style = androidx.compose.material.MaterialTheme.typography.caption,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis
@@ -918,7 +1047,7 @@ fun FeedsItem(
                     Text(
                         text = userEventsItem.payload.commits[0].message,
                         modifier = Modifier.padding(0.dp, 0.dp, 12.dp, 0.dp),
-                        color = Color.Black,
+                        color = MaterialTheme.colorScheme.onPrimaryContainer,
                         style = androidx.compose.material.MaterialTheme.typography.caption,
                         maxLines = 2,
                         overflow = TextOverflow.Ellipsis
@@ -936,7 +1065,8 @@ fun FeedsItem(
                         painter = painterResource(id = chooseFromEvents("eventItem.type").icon),
                         contentDescription = stringResource(
                             id = chooseFromEvents(userEventsItem.type).action
-                        )
+                        ),
+                        tint = MaterialTheme.colorScheme.onPrimaryContainer,
                     )
 
                     Spacer(modifier = Modifier.width(10.dp))
@@ -944,7 +1074,7 @@ fun FeedsItem(
                     Text(
                         text = ParseDateFormat.getTimeAgo(userEventsItem.created_at).toString(),
                         modifier = Modifier.padding(0.dp, 0.dp, 12.dp, 0.dp),
-                        color = Color.Black,
+                        color = MaterialTheme.colorScheme.onPrimaryContainer,
                         style = androidx.compose.material.MaterialTheme.typography.caption,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis
@@ -957,333 +1087,36 @@ fun FeedsItem(
 
 @Composable
 fun RepositoriesScreen(
-    userRepositories: Resource<UserRepositoryModel>, onRepositoryItemClicked: (Int, String) -> Unit
+    userRepositories: Resource<UserRepositoryModel>, onNavigate: (Int, String, String?) -> Unit
 ) {
     when (userRepositories) {
         is Resource.Loading -> {
             Column(
-                modifier = Modifier.fillMaxSize(),
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.Center
-            ) {
-                Text(text = "Loading ...")
-            }
-        }
-
-        is Resource.Success -> {
-            LazyColumn(
                 modifier = Modifier
                     .fillMaxSize()
-                    .background(Color.White),
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.Top
-            ) {
-                itemsIndexed(userRepositories.data!!) { index, UserEventsItem ->
-                    RepositoryItem(
-                        UserEventsItem, onRepositoryItemClicked = onRepositoryItemClicked
-                    )
-                    if (index < userRepositories.data.lastIndex) {
-                        Divider(
-                            color = Color.Gray,
-                            modifier = Modifier.padding(start = 6.dp, end = 6.dp)
-                        )
-                    }
-                }
-            }
-        }
-
-        is Resource.Failure -> {
-            Column(
-                modifier = Modifier.fillMaxSize(),
+                    .background(MaterialTheme.colorScheme.surfaceVariant),
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.Center
             ) {
-                Text(text = "Something went wrong !")
-            }
-        }
-    }
-}
-
-@Composable
-fun RepositoryItem(
-    repository: RepositoryModelItem, onRepositoryItemClicked: (Int, String) -> Unit
-) {
-    Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clickable(onClick = {
-                onRepositoryItemClicked(0, repository.full_name)
-            })
-            .padding(4.dp), elevation = 0.dp, backgroundColor = Color.White
-    ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(6.dp)
-        ) {
-
-            Column(modifier = Modifier.align(Alignment.CenterVertically)) {
-
-                Text(
-                    text = buildAnnotatedString {
-                        if (repository.fork) {
-                            withStyle(
-                                style = SpanStyle(
-                                    color = Color.Blue, fontWeight = FontWeight.Bold
-                                )
-                            ) {
-                                append("Forked / ")
-                            }
-                        }
-                        append(repository.name)
-                    },
-                    modifier = Modifier.padding(0.dp, 0.dp, 12.dp, 0.dp),
-                    color = Color.Black,
-                    style = androidx.compose.material.MaterialTheme.typography.subtitle1,
-                    maxLines = 2,
-                    overflow = TextOverflow.Ellipsis
-                )
-
-                Spacer(modifier = Modifier.height(8.dp))
-
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.Start
-                ) {
-                    Icon(
-                        painter = painterResource(id = R.drawable.ic_star_small),
-                        contentDescription = "star icon"
-                    )
-
-                    Text(
-                        text = repository.stargazers_count.toString(),
-                        color = Color.Black,
-                        modifier = Modifier.padding(start = 2.dp)
-                    )
-
-                    Icon(
-                        painter = painterResource(id = R.drawable.ic_fork_small),
-                        contentDescription = "star icon"
-                    )
-
-                    Text(
-                        text = repository.forks_count.toString(),
-                        color = Color.Black,
-                        modifier = Modifier.padding(start = 2.dp)
-                    )
-
-                    Icon(
-                        painter = painterResource(id = R.drawable.ic_time_small),
-                        contentDescription = "time icon"
-                    )
-
-                    Text(
-                        text = ParseDateFormat.getTimeAgo(repository.updated_at).toString(),
-                        color = Color.Black,
-                        modifier = Modifier.padding(start = 2.dp)
-                    )
-
-                    Icon(
-                        painter = painterResource(id = R.drawable.ic_storage_small),
-                        contentDescription = "storage icon"
-                    )
-
-                    Text(
-                        text = FileSizeCalculator.humanReadableByteCountBin(repository.size.toLong()),
-                        color = Color.Black,
-                        modifier = Modifier.padding(start = 2.dp)
-                    )
-
-                    Text(
-                        text = repository.language ?: "",
-                        color = Color.Black,
-                        modifier = Modifier.padding(start = 2.dp)
-                    )
-                }
-            }
-        }
-    }
-}
-
-@Composable
-fun StarredScreen(
-    userStarredRepoModel: Resource<StarredRepoModel>,
-    onStarredRepoItemClicked: (Int, String) -> Unit
-) {
-    when (userStarredRepoModel) {
-        is Resource.Loading -> {
-            Column(
-                modifier = Modifier.fillMaxSize(),
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.Center
-            ) {
-                Text(text = "Loading ...")
+                Text(text = "Loading ...", color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
         }
 
         is Resource.Success -> {
-            LazyColumn(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .background(Color.White),
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.Top
-            ) {
-                itemsIndexed(userStarredRepoModel.data!!) { index, StarredUserRepo ->
-                    StarredRepositoryItem(
-                        StarredUserRepo, onStarredRepositoryItemClicked = onStarredRepoItemClicked
-                    )
-                    if (index < userStarredRepoModel.data.lastIndex) {
-                        Divider(
-                            color = Color.Gray,
-                            modifier = Modifier.padding(start = 6.dp, end = 6.dp)
-                        )
-                    }
-                }
-            }
-        }
-
-        is Resource.Failure -> {
-            Column(
-                modifier = Modifier.fillMaxSize(),
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.Center
-            ) {
-                Text(text = "Something went wrong!")
-            }
-        }
-    }
-}
-
-@Composable
-fun StarredRepositoryItem(
-    repository: StarredRepoModelItem, onStarredRepositoryItemClicked: (Int, String) -> Unit
-) {
-    Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clickable(onClick = {
-                onStarredRepositoryItemClicked(0, repository.full_name)
-            })
-            .padding(4.dp), elevation = 0.dp, backgroundColor = Color.White
-    ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(6.dp)
-        ) {
-
-            Column(modifier = Modifier.align(Alignment.CenterVertically)) {
-
-                Text(
-                    text = buildAnnotatedString {
-                        if (repository.fork) {
-                            withStyle(
-                                style = SpanStyle(
-                                    color = Color.Blue, fontWeight = FontWeight.Bold
-                                )
-                            ) {
-                                append("Forked / ")
-                            }
-                        }
-                        append(repository.name)
-                    },
-                    modifier = Modifier.padding(0.dp, 0.dp, 12.dp, 0.dp),
-                    color = Color.Black,
-                    style = androidx.compose.material.MaterialTheme.typography.subtitle1,
-                    maxLines = 2,
-                    overflow = TextOverflow.Ellipsis
-                )
-
-                Spacer(modifier = Modifier.height(8.dp))
-
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.Start
-                ) {
-                    Icon(
-                        painter = painterResource(id = R.drawable.ic_star_small),
-                        contentDescription = "star icon"
-                    )
-
-                    Text(
-                        text = repository.stargazers_count.toString(),
-                        color = Color.Black,
-                        modifier = Modifier.padding(start = 2.dp)
-                    )
-
-                    Icon(
-                        painter = painterResource(id = R.drawable.ic_fork_small),
-                        contentDescription = "star icon"
-                    )
-
-                    Text(
-                        text = repository.forks_count.toString(),
-                        color = Color.Black,
-                        modifier = Modifier.padding(start = 2.dp)
-                    )
-
-                    Icon(
-                        painter = painterResource(id = R.drawable.ic_time_small),
-                        contentDescription = "time icon"
-                    )
-
-                    Text(
-                        text = ParseDateFormat.getTimeAgo(repository.updated_at).toString(),
-                        color = Color.Black,
-                        modifier = Modifier.padding(start = 2.dp)
-                    )
-
-                    Icon(
-                        painter = painterResource(id = R.drawable.ic_storage_small),
-                        contentDescription = "storage icon"
-                    )
-
-                    Text(
-                        text = FileSizeCalculator.humanReadableByteCountBin(repository.size.toLong()),
-                        color = Color.Black,
-                        modifier = Modifier.padding(start = 2.dp)
-                    )
-
-                    Text(
-                        text = repository.language ?: "",
-                        color = Color.Black,
-                        modifier = Modifier.padding(start = 2.dp)
-                    )
-                }
-            }
-        }
-    }
-}
-
-@Composable
-fun GistsScreen(gists: Resource<GistModel>, onGistItemClick: (Int, String) -> Unit) {
-    when (gists) {
-        is Resource.Loading -> {
-            Column(
-                modifier = Modifier.fillMaxSize(),
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.Center
-            ) {
-                Text(text = "Loading ...")
-            }
-        }
-
-        is Resource.Success -> {
-            Log.d("ahi3646", "GistsScreen: ${gists.data!!}")
-            if (!gists.data.isEmpty()) {
+            val repositories = userRepositories.data!!
+            if (repositories.isNotEmpty()) {
                 LazyColumn(
                     modifier = Modifier
                         .fillMaxSize()
-                        .background(Color.White),
+                        .background(MaterialTheme.colorScheme.surfaceVariant),
                     horizontalAlignment = Alignment.CenterHorizontally,
                     verticalArrangement = Arrangement.Top
                 ) {
-                    itemsIndexed(gists.data) { index, gist ->
-                        GistItemCard(
-                            gist, onGistItemClick = onGistItemClick
+                    itemsIndexed(repositories) { index, UserEventsItem ->
+                        RepositoryItem(
+                            UserEventsItem, onRepositoryItemClicked = onNavigate
                         )
-                        if (index < gists.data.lastIndex) {
+                        if (index < repositories.lastIndex) {
                             Divider(
                                 color = Color.Gray,
                                 modifier = Modifier.padding(start = 6.dp, end = 6.dp)
@@ -1295,12 +1128,13 @@ fun GistsScreen(gists: Resource<GistModel>, onGistItemClick: (Int, String) -> Un
                 Column(
                     modifier = Modifier
                         .fillMaxSize()
-                        .background(Color.White),
+                        .background(MaterialTheme.colorScheme.surfaceVariant),
                     horizontalAlignment = Alignment.CenterHorizontally,
                     verticalArrangement = Arrangement.Center
                 ) {
                     Text(
-                        text = "No gists", textAlign = TextAlign.Center
+                        text = "No repositories found",
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
             }
@@ -1308,11 +1142,377 @@ fun GistsScreen(gists: Resource<GistModel>, onGistItemClick: (Int, String) -> Un
 
         is Resource.Failure -> {
             Column(
-                modifier = Modifier.fillMaxSize(),
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(MaterialTheme.colorScheme.surfaceVariant),
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.Center
             ) {
-                Text(text = "Something went wrong !")
+                Text(text = "Can't load data!", color = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
+        }
+    }
+}
+
+@Composable
+fun RepositoryItem(
+    repository: RepositoryModelItem, onRepositoryItemClicked: (Int, String, String) -> Unit
+) {
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(
+                onClick = {
+                    onRepositoryItemClicked(
+                        R.id.action_profileFragment_to_repositoryFragment,
+                        repository.name,
+                        repository.owner.login
+                    )
+                }
+            )
+            .padding(4.dp),
+        elevation = 0.dp,
+        backgroundColor = MaterialTheme.colorScheme.surfaceVariant
+
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(6.dp)
+        ) {
+
+            Column(modifier = Modifier.align(Alignment.CenterVertically)) {
+
+                Text(
+                    text = buildAnnotatedString {
+                        if (repository.fork) {
+                            withStyle(
+                                style = SpanStyle(
+                                    color = Color.Blue, fontWeight = FontWeight.Bold
+                                )
+                            ) {
+                                append("Forked / ")
+                            }
+                        }
+                        append(repository.name)
+                    },
+                    modifier = Modifier.padding(0.dp, 0.dp, 12.dp, 0.dp),
+                    color = MaterialTheme.colorScheme.onSecondaryContainer,
+                    style = androidx.compose.material.MaterialTheme.typography.subtitle1,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis
+                )
+
+                Spacer(modifier = Modifier.height(8.dp))
+
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.Start
+                ) {
+                    Icon(
+                        painter = painterResource(id = R.drawable.ic_star_small),
+                        contentDescription = "star icon",
+                        tint = MaterialTheme.colorScheme.onSecondaryContainer
+                    )
+
+                    Text(
+                        text = repository.stargazers_count.toString(),
+                        color = MaterialTheme.colorScheme.onSecondaryContainer,
+                        modifier = Modifier.padding(start = 2.dp)
+                    )
+
+                    Icon(
+                        painter = painterResource(id = R.drawable.ic_fork_small),
+                        contentDescription = "star icon",
+                        tint = MaterialTheme.colorScheme.onSecondaryContainer
+                    )
+
+                    Text(
+                        text = repository.forks_count.toString(),
+                        color = MaterialTheme.colorScheme.onSecondaryContainer,
+                        modifier = Modifier.padding(start = 2.dp)
+                    )
+
+                    Icon(
+                        painter = painterResource(id = R.drawable.ic_time_small),
+                        contentDescription = "time icon",
+                        tint = MaterialTheme.colorScheme.onSecondaryContainer
+                    )
+
+                    Text(
+                        text = ParseDateFormat.getTimeAgo(repository.updated_at).toString(),
+                        color = MaterialTheme.colorScheme.onSecondaryContainer,
+                        modifier = Modifier.padding(start = 2.dp)
+                    )
+
+                    Icon(
+                        painter = painterResource(id = R.drawable.ic_storage_small),
+                        contentDescription = "storage icon",
+                        tint = MaterialTheme.colorScheme.onSecondaryContainer
+                    )
+
+                    Text(
+                        text = FileSizeCalculator.humanReadableByteCountBin(repository.size.toLong()),
+                        color = MaterialTheme.colorScheme.onSecondaryContainer,
+                        modifier = Modifier.padding(start = 2.dp)
+                    )
+
+                    Text(
+                        text = repository.language ?: "",
+                        color = MaterialTheme.colorScheme.onSecondaryContainer,
+                        modifier = Modifier.padding(start = 2.dp)
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun StarredScreen(
+    userStarredRepoModel: Resource<StarredRepoModel>,
+    onNavigate: (Int, String, String?) -> Unit
+) {
+    when (userStarredRepoModel) {
+        is Resource.Loading -> {
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(MaterialTheme.colorScheme.surfaceVariant),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.Center
+            ) {
+                Text(text = "Loading ...", color = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
+        }
+
+        is Resource.Success -> {
+            val starredRepos = userStarredRepoModel.data!!
+
+            if (starredRepos.isNotEmpty()) {
+                LazyColumn(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .background(MaterialTheme.colorScheme.surfaceVariant),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.Top
+                ) {
+                    itemsIndexed(starredRepos) { index, StarredUserRepo ->
+                        StarredRepositoryItem(
+                            StarredUserRepo, onStarredRepositoryItemClicked = onNavigate
+                        )
+                        if (index < starredRepos.lastIndex) {
+                            Divider(
+                                color = Color.Gray,
+                                modifier = Modifier.padding(start = 6.dp, end = 6.dp)
+                            )
+                        }
+                    }
+                }
+            } else {
+                Column(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .background(MaterialTheme.colorScheme.surfaceVariant),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.Center
+                ) {
+                    Text(
+                        text = "No starred repositories found",
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            }
+        }
+
+        is Resource.Failure -> {
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(MaterialTheme.colorScheme.surfaceVariant),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.Center
+            ) {
+                Text(text = "Can't load data!", color = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
+        }
+    }
+}
+
+@Composable
+fun StarredRepositoryItem(
+    repository: StarredRepoModelItem, onStarredRepositoryItemClicked: (Int, String, String) -> Unit
+) {
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(onClick = {
+                onStarredRepositoryItemClicked(
+                    R.id.action_profileFragment_to_repositoryFragment,
+                    repository.name,
+                    repository.owner.login
+                )
+            })
+            .padding(4.dp),
+        elevation = 0.dp,
+        backgroundColor = MaterialTheme.colorScheme.surfaceVariant
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(6.dp)
+        ) {
+
+            Column(modifier = Modifier.align(Alignment.CenterVertically)) {
+
+                Text(
+                    text = buildAnnotatedString {
+                        if (repository.fork) {
+                            withStyle(
+                                style = SpanStyle(
+                                    color = Color.Blue, fontWeight = FontWeight.Bold
+                                )
+                            ) {
+                                append("Forked / ")
+                            }
+                        }
+                        append(repository.name)
+                    },
+                    modifier = Modifier.padding(0.dp, 0.dp, 12.dp, 0.dp),
+                    color = MaterialTheme.colorScheme.onSecondaryContainer,
+                    style = androidx.compose.material.MaterialTheme.typography.subtitle1,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis
+                )
+
+                Spacer(modifier = Modifier.height(8.dp))
+
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.Start
+                ) {
+                    Icon(
+                        painter = painterResource(id = R.drawable.ic_star_small),
+                        contentDescription = "star icon",
+                        tint = MaterialTheme.colorScheme.onSecondaryContainer
+                    )
+
+                    Text(
+                        text = repository.stargazers_count.toString(),
+                        color = MaterialTheme.colorScheme.onSecondaryContainer,
+                        modifier = Modifier.padding(start = 2.dp)
+                    )
+
+                    Icon(
+                        painter = painterResource(id = R.drawable.ic_fork_small),
+                        contentDescription = "star icon",
+                        tint = MaterialTheme.colorScheme.onSecondaryContainer
+                    )
+
+                    Text(
+                        text = repository.forks_count.toString(),
+                        color = MaterialTheme.colorScheme.onSecondaryContainer,
+                        modifier = Modifier.padding(start = 2.dp)
+                    )
+
+                    Icon(
+                        painter = painterResource(id = R.drawable.ic_time_small),
+                        contentDescription = "time icon",
+                        tint = MaterialTheme.colorScheme.onSecondaryContainer
+                    )
+
+                    Text(
+                        text = ParseDateFormat.getTimeAgo(repository.updated_at).toString(),
+                        color = MaterialTheme.colorScheme.onSecondaryContainer,
+                        modifier = Modifier.padding(start = 2.dp)
+                    )
+
+                    Icon(
+                        painter = painterResource(id = R.drawable.ic_storage_small),
+                        contentDescription = "storage icon",
+                        tint = MaterialTheme.colorScheme.onSecondaryContainer
+                    )
+
+                    Text(
+                        text = FileSizeCalculator.humanReadableByteCountBin(repository.size.toLong()),
+                        color = MaterialTheme.colorScheme.onSecondaryContainer,
+                        modifier = Modifier.padding(start = 2.dp)
+                    )
+
+                    Text(
+                        text = repository.language ?: "",
+                        color = MaterialTheme.colorScheme.onSecondaryContainer,
+                        modifier = Modifier.padding(start = 2.dp)
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun GistsScreen(userGists: Resource<GistsModel>, onNavigate: (Int, String, String?) -> Unit) {
+    when (userGists) {
+        is Resource.Loading -> {
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(MaterialTheme.colorScheme.surfaceVariant),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.Center
+            ) {
+                Text(text = "Loading ...", color = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
+        }
+
+        is Resource.Success -> {
+            val gists = userGists.data!!
+            if (gists.isNotEmpty()) {
+                LazyColumn(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .background(MaterialTheme.colorScheme.surfaceVariant),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.Top
+                ) {
+                    itemsIndexed(gists) { index, gist ->
+                        GistItemCard(
+                            gistModelItem = gist,
+                            onGistItemClick = onNavigate
+                        )
+                        if (index < gists.lastIndex) {
+                            Divider(
+                                color = Color.Gray,
+                                modifier = Modifier.padding(start = 6.dp, end = 6.dp)
+                            )
+                        }
+                    }
+                }
+            } else {
+                Column(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .background(MaterialTheme.colorScheme.surfaceVariant),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.Center
+                ) {
+                    Text(
+                        text = "No gists",
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            }
+        }
+
+        is Resource.Failure -> {
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(MaterialTheme.colorScheme.surfaceVariant),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.Center
+            ) {
+                Text(text = "Can't load data!", color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
         }
     }
@@ -1321,15 +1521,31 @@ fun GistsScreen(gists: Resource<GistModel>, onGistItemClick: (Int, String) -> Un
 @Composable
 fun GistItemCard(
     gistModelItem: GistModelItem,
-    onGistItemClick: (Int, String) -> Unit
+    onGistItemClick: (Int, String, String?) -> Unit
 ) {
+
+//    val fileKeys = gistModelItem.files.keys
+    val fileValues = gistModelItem.files.values
+
+    val fileName = if (gistModelItem.description == "" || gistModelItem.description == null) {
+        fileValues.elementAt(0).filename
+    } else {
+        gistModelItem.description
+    }
+
     Card(
         modifier = Modifier
             .fillMaxWidth()
             .clickable(onClick = {
-                onGistItemClick(0, gistModelItem.url)
+                onGistItemClick(
+                    R.id.action_profileFragment_to_gistFragment,
+                    gistModelItem.id,
+                    gistModelItem.owner.login
+                )
             })
-            .padding(4.dp), elevation = 0.dp, backgroundColor = Color.White
+            .padding(4.dp),
+        elevation = 0.dp,
+        backgroundColor = MaterialTheme.colorScheme.surfaceVariant
     ) {
         Column(
             modifier = Modifier
@@ -1337,60 +1553,59 @@ fun GistItemCard(
                 .padding(6.dp)
 
         ) {
+            Text(
+                text = fileName,
+                modifier = Modifier.padding(0.dp, 0.dp, 12.dp, 0.dp),
+                color = MaterialTheme.colorScheme.onSecondaryContainer,
+                fontSize = 16.sp,
+                maxLines = 2,
+                overflow = TextOverflow.Ellipsis
+            )
 
-            Log.d(
-                "ahi3646",
-                "GistItemCard: ${gistModelItem.files.file} ")
+            Spacer(modifier = Modifier.height(8.dp))
 
-                    Text(
-                        text = "gistModelItem.files.hello_world_rb.filename ?: ",
-                        modifier = Modifier.padding(0.dp, 0.dp, 12.dp, 0.dp),
-                        color = Color.Black,
-                        fontSize = 18.sp,
-                        maxLines = 2,
-                        overflow = TextOverflow.Ellipsis
-                    )
+            Text(
+                text = ParseDateFormat.getTimeAgo(gistModelItem.created_at).toString(),
+                color = MaterialTheme.colorScheme.onSecondaryContainer,
+                modifier = Modifier.padding(0.dp, 0.dp, 12.dp, 0.dp)
+            )
 
-                            Spacer (modifier = Modifier.height(8.dp))
-
-                            Text (
-                            text = ParseDateFormat.getTimeAgo(gistModelItem.updated_at).toString(),
-                    color = Color.Black,
-                    modifier = Modifier.padding(start = 2.dp)
-                    )
-
-                }
         }
     }
+}
 
-    @Composable
-    fun FollowersScreen(
-        userFollowers: Resource<FollowersModel>, onFollowersItemClicked: (Int, String) -> Unit
-    ) {
-        when (userFollowers) {
-            is Resource.Loading -> {
-                Column(
-                    modifier = Modifier.fillMaxSize(),
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.Center
-                ) {
-                    Text(text = "Loading ...")
-                }
+@Composable
+fun FollowersScreen(
+    userFollowers: Resource<FollowersModel>, onNavigate: (Int, String, String?) -> Unit
+) {
+    when (userFollowers) {
+        is Resource.Loading -> {
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(MaterialTheme.colorScheme.surfaceVariant),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.Center
+            ) {
+                Text(text = "Loading ...", color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
+        }
 
-            is Resource.Success -> {
+        is Resource.Success -> {
+            val followers = userFollowers.data!!
+            if (followers.isNotEmpty()) {
                 LazyColumn(
                     modifier = Modifier
                         .fillMaxSize()
-                        .background(Color.White),
+                        .background(MaterialTheme.colorScheme.surfaceVariant),
                     horizontalAlignment = Alignment.CenterHorizontally,
                     verticalArrangement = Arrangement.Top
                 ) {
-                    itemsIndexed(userFollowers.data!!) { index, StarredUserRepo ->
+                    itemsIndexed(followers) { index, StarredUserRepo ->
                         FollowersItemCard(
-                            StarredUserRepo, onItemClicked = onFollowersItemClicked
+                            StarredUserRepo, onItemClicked = onNavigate
                         )
-                        if (index < userFollowers.data.lastIndex) {
+                        if (index < followers.lastIndex) {
                             Divider(
                                 color = Color.Gray,
                                 modifier = Modifier.padding(start = 6.dp, end = 6.dp)
@@ -1398,100 +1613,123 @@ fun GistItemCard(
                         }
                     }
                 }
-            }
-
-            is Resource.Failure -> {
+            } else {
                 Column(
-                    modifier = Modifier.fillMaxSize(),
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .background(MaterialTheme.colorScheme.surfaceVariant),
                     horizontalAlignment = Alignment.CenterHorizontally,
                     verticalArrangement = Arrangement.Center
                 ) {
-                    Text(text = "Something went wrong !")
+                    Text(text = "No followers", color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
             }
         }
-    }
 
-    @Composable
-    private fun FollowersItemCard(
-        followersModelItem: FollowersModelItem, onItemClicked: (Int, String) -> Unit
+        is Resource.Failure -> {
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(MaterialTheme.colorScheme.surfaceVariant),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.Center
+            ) {
+                Text(text = "Can't load data!", color = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
+        }
+    }
+}
+
+@Composable
+private fun FollowersItemCard(
+    followersModelItem: FollowersModelItem, onItemClicked: (Int, String, String?) -> Unit
+) {
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(onClick = {
+                onItemClicked(
+                    R.id.action_profileFragment_self,
+                    followersModelItem.login,
+                    null
+                )
+            })
+            .padding(4.dp),
+        elevation = 0.dp,
+        backgroundColor = MaterialTheme.colorScheme.surfaceVariant
     ) {
-        Card(
+        Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .clickable(onClick = {
-                    onItemClicked(0, followersModelItem.login)
-                })
-                .padding(4.dp), elevation = 0.dp, backgroundColor = Color.White
+                .padding(6.dp)
         ) {
-            Row(
+            GlideImage(
+                failure = { painterResource(id = R.drawable.baseline_account_circle_24) },
+                imageModel = {
+                    followersModelItem.avatar_url
+                }, // loading a network image using an URL.
                 modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(6.dp)
-            ) {
-                GlideImage(
-                    failure = { painterResource(id = R.drawable.baseline_account_circle_24) },
-                    imageModel = {
-                        followersModelItem.avatar_url
-                    }, // loading a network image using an URL.
-                    modifier = Modifier
-                        .size(48.dp, 48.dp)
-                        .size(48.dp, 48.dp)
-                        .clip(CircleShape),
-                    imageOptions = ImageOptions(
-                        contentScale = ContentScale.Crop,
-                        alignment = Alignment.CenterStart,
-                        contentDescription = "Actor Avatar"
-                    )
+                    .size(48.dp, 48.dp)
+                    .size(48.dp, 48.dp)
+                    .clip(CircleShape),
+                imageOptions = ImageOptions(
+                    contentScale = ContentScale.Crop,
+                    alignment = Alignment.CenterStart,
+                    contentDescription = "Actor Avatar"
+                )
+            )
+
+            Spacer(modifier = Modifier.width(16.dp))
+
+            Column(modifier = Modifier.align(Alignment.CenterVertically)) {
+                Text(
+                    text = followersModelItem.login,
+                    modifier = Modifier.padding(0.dp, 0.dp, 12.dp, 0.dp),
+                    color = MaterialTheme.colorScheme.onSecondaryContainer,
+                    style = androidx.compose.material.MaterialTheme.typography.subtitle1,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis
                 )
 
-                Spacer(modifier = Modifier.width(16.dp))
+                Spacer(modifier = Modifier.height(8.dp))
 
-                Column(modifier = Modifier.align(Alignment.CenterVertically)) {
-                    Text(
-                        text = followersModelItem.login,
-                        modifier = Modifier.padding(0.dp, 0.dp, 12.dp, 0.dp),
-                        color = Color.Black,
-                        style = androidx.compose.material.MaterialTheme.typography.subtitle1,
-                        maxLines = 2,
-                        overflow = TextOverflow.Ellipsis
-                    )
-
-                    Spacer(modifier = Modifier.height(8.dp))
-
-                }
             }
         }
     }
+}
 
-    @Composable
-    fun FollowingScreen(
-        userFollowings: Resource<FollowingModel>, onFollowingsItemClicked: (Int, String) -> Unit
-    ) {
-        when (userFollowings) {
-            is Resource.Loading -> {
-                Column(
-                    modifier = Modifier.fillMaxSize(),
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.Center
-                ) {
-                    Text(text = "Loading ...")
-                }
+@Composable
+fun FollowingScreen(
+    userFollowings: Resource<FollowingModel>, onNavigate: (Int, String, String?) -> Unit
+) {
+    when (userFollowings) {
+        is Resource.Loading -> {
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(MaterialTheme.colorScheme.surfaceVariant),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.Center
+            ) {
+                Text(text = "Loading ...", color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
+        }
 
-            is Resource.Success -> {
+        is Resource.Success -> {
+            val followings = userFollowings.data!!
+            if (followings.isNotEmpty()) {
                 LazyColumn(
                     modifier = Modifier
                         .fillMaxSize()
-                        .background(Color.White),
+                        .background(MaterialTheme.colorScheme.surfaceVariant),
                     horizontalAlignment = Alignment.CenterHorizontally,
                     verticalArrangement = Arrangement.Top
                 ) {
-                    itemsIndexed(userFollowings.data!!) { index, StarredUserRepo ->
+                    itemsIndexed(followings) { index, StarredUserRepo ->
                         FollowingsItemCard(
-                            StarredUserRepo, onItemClicked = onFollowingsItemClicked
+                            StarredUserRepo, onNavigate = onNavigate
                         )
-                        if (index < userFollowings.data.lastIndex) {
+                        if (index < followings.lastIndex) {
                             Divider(
                                 color = Color.Gray,
                                 modifier = Modifier.padding(start = 6.dp, end = 6.dp)
@@ -1499,68 +1737,87 @@ fun GistItemCard(
                         }
                     }
                 }
-            }
-
-            is Resource.Failure -> {
+            } else {
                 Column(
-                    modifier = Modifier.fillMaxSize(),
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .background(MaterialTheme.colorScheme.surfaceVariant),
                     horizontalAlignment = Alignment.CenterHorizontally,
                     verticalArrangement = Arrangement.Center
                 ) {
-                    Text(text = "Something went wrong!")
+                    Text(text = "No followings", color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
             }
         }
-    }
 
-    @Composable
-    fun FollowingsItemCard(
-        followingModelItem: FollowingModelItem, onItemClicked: (Int, String) -> Unit
+        is Resource.Failure -> {
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(MaterialTheme.colorScheme.surfaceVariant),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.Center
+            ) {
+                Text(text = "Can't load data!", color = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
+        }
+    }
+}
+
+@Composable
+fun FollowingsItemCard(
+    followingModelItem: FollowingModelItem, onNavigate: (Int, String, String?) -> Unit
+) {
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(onClick = {
+                onNavigate(
+                    R.id.action_profileFragment_self,
+                    followingModelItem.login,
+                    null
+                )
+            })
+            .padding(4.dp),
+        elevation = 0.dp,
+        backgroundColor = MaterialTheme.colorScheme.surfaceVariant
     ) {
-        Card(
+        Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .clickable(onClick = {
-                    onItemClicked(0, followingModelItem.login)
-                })
-                .padding(4.dp), elevation = 0.dp, backgroundColor = Color.White
+                .padding(6.dp)
         ) {
-            Row(
+            GlideImage(
+                failure = { painterResource(id = R.drawable.baseline_account_circle_24) },
+                imageModel = {
+                    followingModelItem.avatar_url
+                }, // loading a network image using an URL.
                 modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(6.dp)
-            ) {
-                GlideImage(
-                    failure = { painterResource(id = R.drawable.baseline_account_circle_24) },
-                    imageModel = {
-                        followingModelItem.avatar_url
-                    }, // loading a network image using an URL.
-                    modifier = Modifier
-                        .size(48.dp, 48.dp)
-                        .size(48.dp, 48.dp)
-                        .clip(CircleShape),
-                    imageOptions = ImageOptions(
-                        contentScale = ContentScale.Crop,
-                        alignment = Alignment.CenterStart,
-                        contentDescription = "Actor Avatar"
-                    )
+                    .size(48.dp, 48.dp)
+                    .size(48.dp, 48.dp)
+                    .clip(CircleShape),
+                imageOptions = ImageOptions(
+                    contentScale = ContentScale.Crop,
+                    alignment = Alignment.CenterStart,
+                    contentDescription = "Actor Avatar"
+                )
+            )
+
+            Spacer(modifier = Modifier.width(16.dp))
+
+            Column(modifier = Modifier.align(Alignment.CenterVertically)) {
+                Text(
+                    text = followingModelItem.login,
+                    modifier = Modifier.padding(0.dp, 0.dp, 12.dp, 0.dp),
+                    color = MaterialTheme.colorScheme.onSecondaryContainer,
+                    style = androidx.compose.material.MaterialTheme.typography.subtitle1,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis
                 )
 
-                Spacer(modifier = Modifier.width(16.dp))
+                Spacer(modifier = Modifier.height(8.dp))
 
-                Column(modifier = Modifier.align(Alignment.CenterVertically)) {
-                    Text(
-                        text = followingModelItem.login,
-                        modifier = Modifier.padding(0.dp, 0.dp, 12.dp, 0.dp),
-                        color = Color.Black,
-                        style = androidx.compose.material.MaterialTheme.typography.subtitle1,
-                        maxLines = 2,
-                        overflow = TextOverflow.Ellipsis
-                    )
-
-                    Spacer(modifier = Modifier.height(8.dp))
-
-                }
             }
         }
     }
+}

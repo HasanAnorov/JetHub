@@ -1,12 +1,14 @@
 package com.hasan.jetfasthub.screens.main.gists.public_gist_model
 
+import com.hasan.jetfasthub.screens.main.gists.gist_model.GistFile
+
 data class PublicGistsModelItem(
     val comments: Int,
     val comments_url: String,
     val commits_url: String,
     val created_at: String,
     val description: String,
-    val files: Files,
+    val files: Map<String, GistFile>,
     val forks_url: String,
     val git_pull_url: String,
     val git_push_url: String,
