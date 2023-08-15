@@ -1,6 +1,6 @@
 package com.hasan.jetfasthub.networking.services
 
-import com.hasan.jetfasthub.screens.main.home.user_model.GitHubUser
+import com.hasan.jetfasthub.screens.main.home.data.remote.user_model.GitHubUser
 import com.hasan.jetfasthub.screens.main.profile.model.event_model.UserEvents
 import com.hasan.jetfasthub.screens.main.profile.model.followers_model.FollowersModel
 import com.hasan.jetfasthub.screens.main.profile.model.following_model.FollowingModel

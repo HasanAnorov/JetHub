@@ -4,7 +4,7 @@ data class IssuesItem(
     val assignee: Any,
     val author_association: String,
     val body: String,
-    val closed_at: Any,
+    val closed_at: Any?,
     val comments: Int,
     val comments_url: String,
     val created_at: String,

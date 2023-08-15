@@ -76,4 +76,8 @@
         <p>This program no longer exists.</p>
     ]]></string>
 
+    <string name="opened">opened</string>
+    <string name="closed">closed</string>
+    <string name="all">all</string>
+
 </resources>

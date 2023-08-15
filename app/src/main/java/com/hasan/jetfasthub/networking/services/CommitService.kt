@@ -13,7 +13,7 @@ import retrofit2.http.Headers
 import retrofit2.http.POST
 import retrofit2.http.Path
 
-interface CommitService {
+interface  CommitService {
 
     @Headers("Accept: application/vnd.github+json, application/vnd.github.VERSION.full+json, application/vnd.github.squirrel-girl-preview")
     @GET("repos/{owner}/{repo}/commits/{ref}")

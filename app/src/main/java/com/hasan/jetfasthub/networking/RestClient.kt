@@ -7,8 +7,10 @@ import com.google.gson.GsonBuilder
 import com.hasan.jetfasthub.networking.services.AuthorizationService
 import com.hasan.jetfasthub.networking.services.CommentService
 import com.hasan.jetfasthub.networking.services.CommitService
+import com.hasan.jetfasthub.networking.services.FileViewService
 import com.hasan.jetfasthub.networking.services.GistService
 import com.hasan.jetfasthub.networking.services.HomeService
+import com.hasan.jetfasthub.networking.services.IssueService
 import com.hasan.jetfasthub.networking.services.NotificationsService
 import com.hasan.jetfasthub.networking.services.OrganisationService
 import com.hasan.jetfasthub.networking.services.ProfileService
@@ -18,6 +20,7 @@ import com.hasan.jetfasthub.utility.Constants
 import okhttp3.OkHttpClient
 import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
+import retrofit2.converter.scalars.ScalarsConverterFactory
 
 class RestClient(context: Context) {
 
@@ -41,9 +44,14 @@ class RestClient(context: Context) {
 
         Retrofit.Builder()
             .baseUrl(Constants.BASE_URL)
+            .addConverterFactory(ScalarsConverterFactory.create())
             .addConverterFactory(GsonConverterFactory.create(gson))
             .client(client)
             .build()
+    }
+
+    val fileViewRepository: FileViewService by lazy {
+        retrofit.create(FileViewService::class.java)
     }
 
     val repositoryService: RepositoryService by lazy {
@@ -76,6 +84,10 @@ class RestClient(context: Context) {
 
     val homeService: HomeService by lazy {
         retrofit.create(HomeService::class.java)
+    }
+
+    val issueService: IssueService by lazy {
+        retrofit.create(IssueService::class.java)
     }
 
     val profileService: ProfileService by lazy {

@@ -114,7 +114,7 @@ class CommitViewModel(
         }
         awaitClose {
             channel.close()
-            Log.d("ahi3646", "postCommitComment: channel closed ")
+            Log.d("ahi3646", "deleteComment: channel closed ")
         }
     }
 

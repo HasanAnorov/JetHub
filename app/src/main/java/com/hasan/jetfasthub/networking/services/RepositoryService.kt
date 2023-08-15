@@ -6,8 +6,10 @@ import com.hasan.jetfasthub.screens.main.repository.models.commits_model.Commits
 import com.hasan.jetfasthub.screens.main.repository.models.file_models.FilesModel
 import com.hasan.jetfasthub.screens.main.repository.models.fork_response_model.ForkResponseModel
 import com.hasan.jetfasthub.screens.main.repository.models.forks_model.ForksModel
+import com.hasan.jetfasthub.screens.main.repository.models.issues_model.RepoIssuesModel
 import com.hasan.jetfasthub.screens.main.repository.models.labels_model.LabelsModel
 import com.hasan.jetfasthub.screens.main.repository.models.license_model.LicenseModel
+import com.hasan.jetfasthub.screens.main.repository.models.license_response_model.LicenseResponse
 import com.hasan.jetfasthub.screens.main.repository.models.releases_model.ReleasesModel
 import com.hasan.jetfasthub.screens.main.repository.models.repo_contributor_model.Contributors
 import com.hasan.jetfasthub.screens.main.repository.models.repo_model.RepoModel
@@ -15,6 +17,7 @@ import com.hasan.jetfasthub.screens.main.repository.models.repo_subscription_mod
 import com.hasan.jetfasthub.screens.main.repository.models.stargazers_model.StargazersModel
 import com.hasan.jetfasthub.screens.main.repository.models.subscriptions_model.SubscriptionsModel
 import com.hasan.jetfasthub.screens.main.repository.models.tags_model.TagsModel
+import com.hasan.jetfasthub.screens.main.search.models.issues_model.IssuesModel
 import retrofit2.Response
 import retrofit2.http.DELETE
 import retrofit2.http.GET
@@ -54,8 +57,24 @@ interface RepositoryService {
         @Query("page") page: Int
     ): Response<ReleasesModel>
 
+    @GET("https://raw.githubusercontent.com/{owner}/{repo}/{branch}/README.md")
+    @Headers("Accept: application/vnd.github+json")
+    suspend fun getReadMeMarkdown(
+        @Header("Authorization") token: String,
+        @Path("owner") owner: String,
+        @Path("repo") repo: String,
+        @Path("branch") branch: String,
+    ): Response<String>
+
     @Headers("Accept: application/vnd.github.html")
     suspend fun getReadmeAsHtml(
+        @Header("Authorization") token: String,
+        @Url url: String
+    ): Response<String>
+
+    @GET
+    @Headers("Accept: application/vnd.github.html")
+    suspend fun getFileAsHtmlStream(
         @Header("Authorization") token: String,
         @Url url: String
     ): Response<String>
@@ -197,6 +216,13 @@ interface RepositoryService {
         @Path("repo") repo: String,
     ): Response<ForkResponseModel>
 
+    @Headers("Accept: application/vnd.github+json")
+    @GET("licenses/{license}")
+    suspend fun getLicense(
+        @Header("Authorization") token: String,
+        @Path("license") license: String,
+    ): Response<LicenseResponse>
+
     @Headers("Accept: application/vnd.github.html")
     @GET("repos/{owner}/{repo}/license")
     suspend fun getLicense(
@@ -204,5 +230,24 @@ interface RepositoryService {
         @Path("owner") owner: String,
         @Path("repo") repo: String,
     ): Response<LicenseModel>
+
+    @Headers("Accept: application/vnd.github.html")
+    @GET("repos/{owner}/{repo}/issues")
+    suspend fun getIssues(
+        @Header("Authorization") token: String,
+        @Path("owner") owner: String,
+        @Path("repo") repo: String,
+        @Query("state") state: String,
+        @Query("sort") sortBy: String,
+        @Query("page") page: Int
+    ): Response<RepoIssuesModel>
+
+    @Headers("Accept: application/vnd.github+json")
+    @GET("search/issues")
+    suspend fun getIssuesWithCount(
+        @Header("Authorization") authToken: String,
+        @Query(value = "q", encoded = true) query: String,
+        @Query("page") page: Int
+    ): Response<IssuesModel>
 
 }

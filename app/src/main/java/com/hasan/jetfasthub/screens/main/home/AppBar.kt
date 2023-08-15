@@ -31,6 +31,7 @@ fun AppBar(
     CompositionLocalProvider(LocalRippleTheme provides RippleCustomTheme) {
         TopAppBar(
             backgroundColor = MaterialTheme.colorScheme.surface,
+            elevation = 0.dp
         ) {
             Row(
                 modifier = Modifier.fillMaxSize(),

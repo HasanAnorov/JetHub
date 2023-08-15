@@ -144,130 +144,135 @@ class CommitFragment : Fragment() {
             setContent {
                 val state by commitViewModel.state.collectAsState()
                 JetFastHubTheme {
-                    MainContent(state = state, onNavigate = { dest, data, id ->
-                        when (dest) {
-                            -1 -> {
-                                findNavController().popBackStack()
-                            }
-
-                            R.id.action_commitFragment_to_editCommentFragment -> {
-                                val bundle = Bundle()
-                                bundle.putString("owner", state.CommitOwner)
-                                bundle.putString("repo", state.CommitRepo)
-                                bundle.putString("edit_comment", data)
-                                bundle.putInt("comment_id", id!!)
-                                findNavController().navigate(dest, bundle)
-                            }
-
-                            R.id.action_commitFragment_to_profileFragment -> {
-                                val bundle = bundleOf("username" to data)
-                                findNavController().navigate(dest, bundle)
-                            }
-                        }
-                    }, onAction = { action, data ->
-                        when (action) {
-
-                            "post_comment" -> {
-                                commitViewModel.postCommitComment(
-                                    token = token,
-                                    owner = state.CommitOwner,
-                                    repo = state.CommitRepo,
-                                    branch = state.CommitSha,
-                                    body = data!!
-                                ).flowWithLifecycle(lifecycle, Lifecycle.State.STARTED)
-                                    .onEach { response ->
-                                        if (response) {
-                                            commitViewModel.getCommitComments(
-                                                token = token,
-                                                owner = state.CommitOwner,
-                                                repo = state.CommitRepo,
-                                                branch = state.CommitSha
-                                            )
-                                        } else {
-                                            Toast.makeText(
-                                                requireContext(),
-                                                "Can't post comment",
-                                                Toast.LENGTH_SHORT
-                                            ).show()
-                                        }
-                                    }.launchIn(lifecycleScope)
-                            }
-
-                            "share" -> {
-                                val context = requireContext()
-                                val type = "text/plain"
-                                val subject = "Your subject"
-                                val shareWith = "ShareWith"
-
-                                val intent = Intent(Intent.ACTION_SEND)
-                                intent.type = type
-                                intent.putExtra(Intent.EXTRA_SUBJECT, subject)
-                                intent.putExtra(Intent.EXTRA_TEXT, data)
-
-                                ContextCompat.startActivity(
-                                    context, Intent.createChooser(intent, shareWith), null
-                                )
-                            }
-
-                            "browser" -> {
-                                var webpage = Uri.parse(data)
-
-                                if (!data!!.startsWith("http://") && !data.startsWith("https://")) {
-                                    webpage = Uri.parse("http://$data")
+                    MainContent(
+                        state = state,
+                        onNavigate = { dest, data, id ->
+                            when (dest) {
+                                -1 -> {
+                                    findNavController().popBackStack()
                                 }
-                                val urlIntent = Intent(
-                                    Intent.ACTION_VIEW, webpage
-                                )
-                                requireContext().startActivity(urlIntent)
-                            }
 
-                            "copy" -> {
-                                val clipboardManager =
-                                    requireContext().getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
-                                val clipData = ClipData.newPlainText("text", data)
-                                clipboardManager.setPrimaryClip(clipData)
-                                Toast.makeText(requireContext(), "Copied", Toast.LENGTH_SHORT)
-                                    .show()
-                            }
+                                R.id.action_commitFragment_to_editCommentFragment -> {
+                                    val bundle = Bundle()
+                                    bundle.putString("owner", state.CommitOwner)
+                                    bundle.putString("repo", state.CommitRepo)
+                                    bundle.putString("edit_comment", data)
+                                    bundle.putInt("comment_id", id!!)
+                                    findNavController().navigate(dest, bundle)
+                                }
 
-                            "download" -> {
-                                val message = Uri.parse(
-                                    data!!
-                                ).lastPathSegment
-                                commitViewModel.downloadCommit(
-                                    data, message ?: "jethub_download"
-                                )
+                                R.id.action_commitFragment_to_profileFragment -> {
+                                    val bundle = bundleOf("username" to data)
+                                    findNavController().navigate(dest, bundle)
+                                }
                             }
+                        },
+                        onAction = { action, data ->
+                            when (action) {
 
-                            "delete_comment" -> {
-                                commitViewModel.deleteComment(
-                                    token = token,
-                                    owner = state.CommitOwner,
-                                    repo = state.CommitRepo,
-                                    commentId = data!!.toInt()
-                                ).flowWithLifecycle(lifecycle, Lifecycle.State.STARTED)
-                                    .onEach { response ->
-                                        if (response) {
-                                            commitViewModel.getCommitComments(
-                                                token = token,
-                                                owner = state.CommitOwner,
-                                                repo = state.CommitRepo,
-                                                branch = state.CommitSha
-                                            )
-                                        } else {
-                                            Toast.makeText(
-                                                requireContext(),
-                                                "Can't delete comment now !",
-                                                Toast.LENGTH_SHORT
-                                            ).show()
-                                        }
-                                    }.launchIn(lifecycleScope)
+                                "post_comment" -> {
+                                    commitViewModel.postCommitComment(
+                                        token = token,
+                                        owner = state.CommitOwner,
+                                        repo = state.CommitRepo,
+                                        branch = state.CommitSha,
+                                        body = data!!
+                                    ).flowWithLifecycle(lifecycle, Lifecycle.State.STARTED)
+                                        .onEach { response ->
+                                            if (response) {
+                                                commitViewModel.getCommitComments(
+                                                    token = token,
+                                                    owner = state.CommitOwner,
+                                                    repo = state.CommitRepo,
+                                                    branch = state.CommitSha
+                                                )
+                                            } else {
+                                                Toast.makeText(
+                                                    requireContext(),
+                                                    "Can't post comment",
+                                                    Toast.LENGTH_SHORT
+                                                ).show()
+                                            }
+                                        }.launchIn(lifecycleScope)
+                                }
+
+                                "share" -> {
+                                    val context = requireContext()
+                                    val type = "text/plain"
+                                    val subject = "Your subject"
+                                    val shareWith = "ShareWith"
+
+                                    val intent = Intent(Intent.ACTION_SEND)
+                                    intent.type = type
+                                    intent.putExtra(Intent.EXTRA_SUBJECT, subject)
+                                    intent.putExtra(Intent.EXTRA_TEXT, data)
+
+                                    ContextCompat.startActivity(
+                                        context, Intent.createChooser(intent, shareWith), null
+                                    )
+                                }
+
+                                "browser" -> {
+                                    var webpage = Uri.parse(data)
+
+                                    if (!data!!.startsWith("http://") && !data.startsWith("https://")) {
+                                        webpage = Uri.parse("http://$data")
+                                    }
+                                    val urlIntent = Intent(
+                                        Intent.ACTION_VIEW, webpage
+                                    )
+                                    requireContext().startActivity(urlIntent)
+                                }
+
+                                "copy" -> {
+                                    val clipboardManager =
+                                        requireContext().getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+                                    val clipData = ClipData.newPlainText("text", data)
+                                    clipboardManager.setPrimaryClip(clipData)
+                                    Toast.makeText(requireContext(), "Copied", Toast.LENGTH_SHORT)
+                                        .show()
+                                }
+
+                                "download" -> {
+                                    val message = Uri.parse(
+                                        data!!
+                                    ).lastPathSegment
+                                    commitViewModel.downloadCommit(
+                                        data, message ?: "jethub_download"
+                                    )
+                                }
+
+                                "delete_comment" -> {
+                                    commitViewModel.deleteComment(
+                                        token = token,
+                                        owner = state.CommitOwner,
+                                        repo = state.CommitRepo,
+                                        commentId = data!!.toInt()
+                                    ).flowWithLifecycle(lifecycle, Lifecycle.State.STARTED)
+                                        .onEach { response ->
+                                            if (response) {
+                                                commitViewModel.getCommitComments(
+                                                    token = token,
+                                                    owner = state.CommitOwner,
+                                                    repo = state.CommitRepo,
+                                                    branch = state.CommitSha
+                                                )
+                                            } else {
+                                                Toast.makeText(
+                                                    requireContext(),
+                                                    "Can't delete comment now !",
+                                                    Toast.LENGTH_SHORT
+                                                ).show()
+                                            }
+                                        }.launchIn(lifecycleScope)
+                                }
+
                             }
-
+                        },
+                        onCurrentSheetChanged = { currentSheet ->
+                            commitViewModel.onBottomSheetChanged(currentSheet)
                         }
-                    }, onCurrentSheetChanged = { currentSheet ->
-                        commitViewModel.onBottomSheetChanged(currentSheet)
-                    })
+                    )
                 }
             }
         }
@@ -355,6 +360,7 @@ private fun MainContent(
                         is Resource.Failure -> {}
                     }
                 }
+
                 is CommitScreenSheets.CommitDeleteRequestSheet -> {
                     val commentId = state.CurrentSheet.commentId
 
@@ -886,7 +892,6 @@ private fun CommentItem(
                                 comment.id
                             )
                         )
-                        onAction("delete", "")
                         showMenu = false
                     })
                     DropdownMenuItem(text = {

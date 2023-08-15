@@ -424,6 +424,7 @@ fun TabScreen(
             .fillMaxWidth()
             .background(MaterialTheme.colorScheme.surface)
     ) {
+
         ScrollableTabRow(
             selectedTabIndex = tabIndex,
             contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
@@ -477,7 +478,11 @@ fun TabScreen(
             )
 
             1 -> FeedScreen(
-                state.UserEvents, onNavigate = onNavigate
+                userEvents = state.UserEvents,
+                onNavigate = onNavigate,
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(MaterialTheme.colorScheme.surfaceVariant)
             )
 
             2 -> RepositoriesScreen(
@@ -941,13 +946,15 @@ fun OrganisationItem(organisation: OrgModelItem, onNavigate: (Int, String?, Stri
 }
 
 @Composable
-fun FeedScreen(userEvents: Resource<UserEvents>, onNavigate: (Int, String, String?) -> Unit) {
+fun FeedScreen(
+    userEvents: Resource<UserEvents>,
+    onNavigate: (Int, String, String?) -> Unit,
+    modifier: Modifier
+) {
     when (userEvents) {
         is Resource.Loading -> {
             Column(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .background(MaterialTheme.colorScheme.surfaceVariant),
+                modifier = modifier,
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.Center
             ) {
@@ -956,30 +963,37 @@ fun FeedScreen(userEvents: Resource<UserEvents>, onNavigate: (Int, String, Strin
         }
 
         is Resource.Success -> {
-            LazyColumn(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .background(MaterialTheme.colorScheme.surfaceVariant),
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.Top
-            ) {
-                itemsIndexed(userEvents.data!!) { index, UserEventsItem ->
-                    FeedsItem(onFeedsItemClicked = onNavigate, UserEventsItem)
-                    if (index < userEvents.data.lastIndex) {
-                        Divider(
-                            color = Color.Gray,
-                            modifier = Modifier.padding(start = 6.dp, end = 6.dp)
-                        )
+            val events = userEvents.data!!
+            if(events.isNotEmpty()){
+                LazyColumn(
+                    modifier = modifier,
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.Top
+                ) {
+                    itemsIndexed(events) { index, userEventsItem ->
+                        FeedsItem(onFeedsItemClicked = onNavigate, userEventsItem)
+                        if (index < events.lastIndex) {
+                            Divider(
+                                color = Color.Gray,
+                                modifier = Modifier.padding(start = 6.dp, end = 6.dp)
+                            )
+                        }
                     }
+                }
+            }else{
+                Column(
+                    modifier = modifier,
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.Center
+                ) {
+                    Text(text = "No feeds", color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
             }
         }
 
         is Resource.Failure -> {
             Column(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .background(MaterialTheme.colorScheme.surfaceVariant),
+                modifier = modifier,
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.Center
             ) {
@@ -1112,9 +1126,9 @@ fun RepositoriesScreen(
                     horizontalAlignment = Alignment.CenterHorizontally,
                     verticalArrangement = Arrangement.Top
                 ) {
-                    itemsIndexed(repositories) { index, UserEventsItem ->
+                    itemsIndexed(repositories) { index, userEventsItem ->
                         RepositoryItem(
-                            UserEventsItem, onRepositoryItemClicked = onNavigate
+                            userEventsItem, onRepositoryItemClicked = onNavigate
                         )
                         if (index < repositories.lastIndex) {
                             Divider(
@@ -1297,9 +1311,9 @@ fun StarredScreen(
                     horizontalAlignment = Alignment.CenterHorizontally,
                     verticalArrangement = Arrangement.Top
                 ) {
-                    itemsIndexed(starredRepos) { index, StarredUserRepo ->
+                    itemsIndexed(starredRepos) { index, starredUserRepo ->
                         StarredRepositoryItem(
-                            StarredUserRepo, onStarredRepositoryItemClicked = onNavigate
+                            starredUserRepo, onStarredRepositoryItemClicked = onNavigate
                         )
                         if (index < starredRepos.lastIndex) {
                             Divider(
@@ -1601,9 +1615,9 @@ fun FollowersScreen(
                     horizontalAlignment = Alignment.CenterHorizontally,
                     verticalArrangement = Arrangement.Top
                 ) {
-                    itemsIndexed(followers) { index, StarredUserRepo ->
+                    itemsIndexed(followers) { index, starredUserRepo ->
                         FollowersItemCard(
-                            StarredUserRepo, onItemClicked = onNavigate
+                            starredUserRepo, onItemClicked = onNavigate
                         )
                         if (index < followers.lastIndex) {
                             Divider(
@@ -1725,9 +1739,9 @@ fun FollowingScreen(
                     horizontalAlignment = Alignment.CenterHorizontally,
                     verticalArrangement = Arrangement.Top
                 ) {
-                    itemsIndexed(followings) { index, StarredUserRepo ->
+                    itemsIndexed(followings) { index, starredUserRepo ->
                         FollowingsItemCard(
-                            StarredUserRepo, onNavigate = onNavigate
+                            starredUserRepo, onNavigate = onNavigate
                         )
                         if (index < followings.lastIndex) {
                             Divider(

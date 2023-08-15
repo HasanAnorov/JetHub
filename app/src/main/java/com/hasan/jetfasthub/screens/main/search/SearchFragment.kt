@@ -342,16 +342,29 @@ private fun RepositoriesContent(
         }
 
         is ResourceWithInitial.Success -> {
-            LazyColumn(
-                modifier = Modifier
-                    .padding(contentPaddingValues)
-                    .fillMaxSize()
-                    .background(MaterialTheme.colorScheme.surfaceVariant),
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.Top
-            ) {
-                items(repositories.data!!.items) { repository ->
-                    RepositoryItem(repository, onNavigate)
+            val data = repositories.data!!.items
+            if(data.isNotEmpty()){
+                LazyColumn(
+                    modifier = Modifier
+                        .padding(contentPaddingValues)
+                        .fillMaxSize()
+                        .background(MaterialTheme.colorScheme.surfaceVariant),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.Top
+                ) {
+                    items(data) { repository ->
+                        RepositoryItem(repository, onNavigate)
+                    }
+                }
+            }else{
+                Column(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .background(MaterialTheme.colorScheme.surfaceVariant),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.Center
+                ) {
+                    Text(text = "No Repositories", color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
             }
         }
@@ -526,16 +539,29 @@ private fun UsersContent(
         }
 
         is ResourceWithInitial.Success -> {
-            LazyColumn(
-                modifier = Modifier
-                    .padding(contentPaddingValues)
-                    .fillMaxSize()
-                    .background(MaterialTheme.colorScheme.surfaceVariant),
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.Top
-            ) {
-                items(users.data!!.items) { user ->
-                    UsersItem(user, onUsersItemClicked)
+            val data = users.data!!.items
+            if(data.isNotEmpty()){
+                LazyColumn(
+                    modifier = Modifier
+                        .padding(contentPaddingValues)
+                        .fillMaxSize()
+                        .background(MaterialTheme.colorScheme.surfaceVariant),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.Top
+                ) {
+                    items(data) { user ->
+                        UsersItem(user, onUsersItemClicked)
+                    }
+                }
+            }else{
+                Column(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .background(MaterialTheme.colorScheme.surfaceVariant),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.Center
+                ) {
+                    Text(text = "No Repositories", color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
             }
         }
@@ -644,16 +670,29 @@ private fun IssuesContent(
         }
 
         is ResourceWithInitial.Success -> {
-            LazyColumn(
-                modifier = Modifier
-                    .padding(contentPaddingValues)
-                    .fillMaxSize()
-                    .background(MaterialTheme.colorScheme.surfaceVariant),
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.Top
-            ) {
-                items(issues.data!!.items) { issue ->
-                    IssuesItem(issue, onIssueItemClicked)
+            val data = issues.data!!.items
+            if (data.isNotEmpty()){
+                LazyColumn(
+                    modifier = Modifier
+                        .padding(contentPaddingValues)
+                        .fillMaxSize()
+                        .background(MaterialTheme.colorScheme.surfaceVariant),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.Top
+                ) {
+                    items(data) { issue ->
+                        IssuesItem(issue, onIssueItemClicked)
+                    }
+                }
+            }else{
+                Column(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .background(MaterialTheme.colorScheme.surfaceVariant),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.Center
+                ) {
+                    Text(text = "No Repositories", color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
             }
         }
@@ -803,22 +842,35 @@ private fun CodeContent(
         }
 
         is ResourceWithInitial.Success -> {
-            LazyColumn(
-                modifier = Modifier
-                    .padding(contentPaddingValues)
-                    .fillMaxSize()
-                    .background(MaterialTheme.colorScheme.surfaceVariant),
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.Top
-            ) {
-                itemsIndexed(codes.data!!.items) { index, code ->
-                    CodesItem(code, onCodeItemClicked)
-                    if (index < codes.data.items.lastIndex) {
-                        Divider(
-                            color = Color.Gray,
-                            modifier = Modifier.padding(start = 6.dp, end = 6.dp)
-                        )
+            val data = codes.data!!.items
+            if(data.isNotEmpty()){
+                LazyColumn(
+                    modifier = Modifier
+                        .padding(contentPaddingValues)
+                        .fillMaxSize()
+                        .background(MaterialTheme.colorScheme.surfaceVariant),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.Top
+                ) {
+                    itemsIndexed(data) { index, code ->
+                        CodesItem(code, onCodeItemClicked)
+                        if (index < codes.data.items.lastIndex) {
+                            Divider(
+                                color = Color.Gray,
+                                modifier = Modifier.padding(start = 6.dp, end = 6.dp)
+                            )
+                        }
                     }
+                }
+            }else{
+                Column(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .background(MaterialTheme.colorScheme.surfaceVariant),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.Center
+                ) {
+                    Text(text = "No Repositories", color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
             }
         }

@@ -20,6 +20,16 @@
             app:destination="@id/repositoryFragment" />
 
         <action
+            android:id="@+id/action_fromFragment_to_issueFragment"
+            app:launchSingleTop="true"
+            app:enterAnim="@anim/fade_in"
+            app:exitAnim="@anim/fade_out"
+            app:popEnterAnim="@anim/fade_in"
+            app:popExitAnim="@anim/fade_out"
+            app:popUpTo="@id/homeFragment"
+            app:destination="@id/issueFragment" />
+
+        <action
             android:id="@+id/action_homeFragment_to_profileFragment"
             app:launchSingleTop="true"
             app:enterAnim="@anim/fade_in"
@@ -291,6 +301,26 @@
         android:label="RepositoryFragment" >
 
         <action
+            android:id="@+id/action_repositoryFragment_to_fileViewFragment"
+            app:launchSingleTop="true"
+            app:enterAnim="@anim/fade_in"
+            app:exitAnim="@anim/fade_out"
+            app:popEnterAnim="@anim/fade_in"
+            app:popExitAnim="@anim/fade_out"
+            app:popUpTo="@id/repositoryFragment"
+            app:destination="@id/fileViewFragment" />
+
+        <action
+            android:id="@+id/action_fromFragment_to_issueFragment"
+            app:launchSingleTop="true"
+            app:enterAnim="@anim/fade_in"
+            app:exitAnim="@anim/fade_out"
+            app:popEnterAnim="@anim/fade_in"
+            app:popExitAnim="@anim/fade_out"
+            app:popUpTo="@id/repositoryFragment"
+            app:destination="@id/issueFragment" />
+
+        <action
             android:id="@+id/action_repositoryFragment_to_homeFragment"
             app:destination="@id/homeFragment"
             app:popUpTo="@id/homeFragment"
@@ -415,5 +445,26 @@
             app:popUpToInclusive="false"/>
 
     </fragment>
+
+    <fragment
+        android:id="@+id/issueFragment"
+        android:name="com.hasan.jetfasthub.screens.main.issue.IssueFragment"
+        android:label="IssueFragment" >
+
+        <action
+            android:id="@+id/action_issueFragment_to_profileFragment"
+            app:destination="@id/profileFragment"
+            app:popUpTo="@id/issueFragment"
+            app:enterAnim="@anim/fade_in"
+            app:exitAnim="@anim/fade_out"
+            app:popEnterAnim="@anim/fade_in"
+            app:popExitAnim="@anim/fade_out"
+            app:popUpToInclusive="false"/>
+
+    </fragment>
+    <fragment
+        android:id="@+id/fileViewFragment"
+        android:name="com.hasan.jetfasthub.screens.main.file_view.FileViewFragment"
+        android:label="FileViewFragment" />
 
 </navigation>
