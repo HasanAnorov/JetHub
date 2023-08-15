@@ -41,7 +41,6 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
-import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
@@ -65,6 +64,7 @@ import androidx.lifecycle.flowWithLifecycle
 import androidx.lifecycle.lifecycleScope
 import androidx.navigation.findNavController
 import com.hasan.jetfasthub.R
+import com.hasan.jetfasthub.data.PreferenceHelper
 import com.hasan.jetfasthub.ui.theme.JetFastHubTheme
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.launchIn
@@ -83,6 +83,8 @@ class EditCommentFragment : Fragment() {
         container: ViewGroup?,
         savedInstanceState: Bundle?
     ): View {
+
+        token = PreferenceHelper.getToken(requireContext())
 
         val owner = arguments?.getString("owner")
         val repo = arguments?.getString("repo")
@@ -181,7 +183,7 @@ class EditCommentFragment : Fragment() {
 
 }
 
-@OptIn(ExperimentalComposeUiApi::class, ExperimentalMaterialApi::class)
+@OptIn( ExperimentalMaterialApi::class)
 @Composable
 private fun MainContent(
     editComment: String,

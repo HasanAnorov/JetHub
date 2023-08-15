@@ -308,6 +308,7 @@ class ProfileViewModel(private val repository: ProfileRepository) : ViewModel() 
                             )
                         }
                     }else{
+                        Log.d("ahi3646", "unfollowUser: ${response.errorBody().toString()}")
                         trySend(false)
                     }
                 }
@@ -334,6 +335,7 @@ class ProfileViewModel(private val repository: ProfileRepository) : ViewModel() 
                             )
                         }
                     }else{
+                        Log.d("ahi3646", "followUser: ${res.errorBody().toString()}")
                         trySend(false)
                     }
                 }
@@ -344,7 +346,7 @@ class ProfileViewModel(private val repository: ProfileRepository) : ViewModel() 
         }
         awaitClose {
             channel.close()
-            Log.d("callback_ahi", "callback stop : ")
+            Log.d("ahi3646", "followUser callback stopped")
         }
     }
 
