@@ -64,6 +64,13 @@ Another open-source GitHub client app but unlike any other app, JetHub was built
 - [**MarkdownView-Android**](https://github.com/mukeshsolanki/MarkdownView-Android) for _Markdown_ view
 - Navigation Component, Material Design 3, Download Manager, and many Android support libraries :)
 
+## Screenshots
 
+| Feeds | Drawer |
+|:-:|:-:|
+| ![First](https://github.com/HasanAnorov/JetHub/blob/main/app/src/main/res/drawable/first.png) | ![Sec](https://github.com/HasanAnorov/JetHub/blob/main/app/src/main/res/drawable/sec.png) |
 
- 
+| Repo | Profile |
+|:-:|:-:|
+| ![Third](https://github.com/HasanAnorov/JetHub/blob/main/app/src/main/res/drawable/third.png) | ![Fourth](https://github.com/HasanAnorov/JetHub/blob/main/app/src/main/res/drawable/fourth.png) |
+
