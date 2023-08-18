@@ -47,7 +47,7 @@ Another open-source GitHub client app but unlike any other app, JetHub was built
   - Contribution graph.
   - Search Users, Repos, Issues,Pull Requests and Code
 - _**Much more...**_
-  - JetHub is actively developed by myself. More features will come!_
+  - JetHub is actively developed by myself. More features will come!
 
 ## Specs / Open-source libraries:
 
