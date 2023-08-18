@@ -53,7 +53,7 @@ Another open-source GitHub client app but unlike any other app, JetHub was built
 
 - Minimum **SDK 24**
 - [**Jetpack Compose**](https://github.com/JetBrains/kotlin) Android’s recommended modern toolkit for building native UI.
-- [**Room**](https://developer.android.com/jetpack/androidx/releases/room) to enable online & offline support and for cache purposes.
+- [**OAuth2**](https://developers.google.com/identity/protocols/oauth2/native-app) provides a single value, called an auth token, that represents both the user's identity and the application's authorization to act on the user's behalf.
 - [**Paging3**](https://developer.android.com/topic/libraries/architecture/paging/v3-network-db) Pagination from remote API & Local cache using paging3.
 - [**Room**](https://developer.android.com/jetpack/androidx/releases/room) to enable online & offline support and for cache purposes.
 - [**Koin**](https://insert-koin.io/docs/quickstart/android/) a pragmatic and lightweight dependency injection framework for Kotlin developers.
