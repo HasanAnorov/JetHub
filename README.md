@@ -1,5 +1,5 @@
 
-![Jethub](https://github.com/HasanAnorov/JetHub/assets/61424161/b3a40cd1-faed-4f8d-a942-0d3fd44fd7a8)
+![jethub_compose](https://github.com/HasanAnorov/JetHub/assets/61424161/fc3eb6da-ff25-40a6-a8e9-93dccafaec43)
 
 # JetHub
 
